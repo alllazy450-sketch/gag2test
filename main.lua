@@ -1,111 +1,32 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (FLUENT-ONLY – ULTIMATE MOBILE TRY)
---  Grow a Garden 2 – All-in-One
+--  W424HUB-GAG2 | V.3.0 (FLUENT LITE – ORIGINAL)
+--  Grow a Garden 2 – All-in-One (Mobile Optimized)
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT-ULTIMATE) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT LITE) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- ===== FETCH FLUENT FROM MULTIPLE SOURCES =====
-local function fetchFluent()
-    local urls = {
-        -- Primary: modded repo
-        "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/FluentPro.luau",
-        "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/FluentPro.lua",
-        "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/source.luau",
-        "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/Fluent.lua",
-        -- Release downloads (may be minified)
-        "https://github.com/StyearX/Fluent-Modded/releases/download/Fluent/FluentPro",
-        -- CDN fallback
-        "https://cdn.jsdelivr.net/gh/StyearX/Fluent-Modded@main/FluentPro.luau",
-        -- Original Fluent (if modded fails)
-        "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/init.lua",
-    }
-    local errors = {}
-    for _, url in ipairs(urls) do
-        local ok, content = pcall(function()
-            return game:HttpGet(url, true)
-        end)
-        if ok and content and type(content) == "string" and #content > 100 then
-            local fn, compileErr = loadstring(content)
-            if fn then
-                local lib = fn()
-                if lib and type(lib) == "table" and lib.CreateWindow then
-                    print("✅ Fluent loaded from:", url)
-                    return lib
-                else
-                    table.insert(errors, "Invalid library from " .. url)
-                end
-            else
-                table.insert(errors, "Compile error: " .. tostring(compileErr))
-            end
-        else
-            table.insert(errors, "Fetch failed: " .. tostring(ok) .. " (" .. tostring(content) .. ")")
-        end
-        task.wait(0.2)
-    end
-    error("All Fluent load attempts failed:\n" .. table.concat(errors, "\n"))
-end
+-- ===== LOAD FLUENT LITE (ORIGINAL) =====
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+if not Fluent then error("Fluent Lite failed to load.") end
+print("Fluent Lite loaded.")
 
-local Fluent = fetchFluent()
-print("Fluent obtained. Building UI...")
-
--- ===== GET SCREEN SIZE (MOBILE SAFE) =====
+-- ===== CREATE WINDOW (MOBILE OPTIMIZED) =====
 local Camera = workspace.CurrentCamera
 local ViewportSize = Camera and Camera.ViewportSize or Vector2.new(400, 600)
 local w = math.clamp(ViewportSize.X - 20, 280, 400)
 local h = math.clamp(ViewportSize.Y - 80, 380, 480)
-print("Target window size: " .. w .. "x" .. h)
 
--- ===== ATTEMPT WINDOW CREATION WITH VARIOUS SIZE FORMATS =====
-local Window
-local function tryCreateWindow(sizeParam)
-    local params = {
-        Title = "W424HUB-GAG2",
-        SubTitle = "V.3.0 | Grow a Garden 2",
-        MinimizeKey = Enum.KeyCode.RightShift,
-    }
-    if sizeParam ~= nil then
-        params.Size = sizeParam
-    end
-    local ok, result = pcall(function()
-        return Fluent:CreateWindow(params)
-    end)
-    if ok and result then
-        return result
-    end
-    return nil, tostring(result)
-end
-
-local sizeFormats = {
-    { name = "UDim2 (fromOffset)", value = UDim2.fromOffset(w, h) },
-    { name = "UDim2 (new)", value = UDim2.new(0, w, 0, h) },
-    { name = "Vector2", value = Vector2.new(w, h) },
-    { name = "Table {X,Y}", value = { X = w, Y = h } },
-    { name = "Table {Width,Height}", value = { Width = w, Height = h } },
-    { name = "No Size (default)", value = nil },
-}
-
-local lastError
-for _, fmt in ipairs(sizeFormats) do
-    local win, err = tryCreateWindow(fmt.value)
-    if win then
-        Window = win
-        print("✅ Window created with size format:", fmt.name)
-        break
-    else
-        lastError = err
-        warn("Attempt with " .. fmt.name .. " failed: " .. err)
-    end
-    task.wait(0.1)
-end
-
-if not Window then
-    error("CRITICAL: Failed to create Fluent window with any size format.\nLast error: " .. tostring(lastError) .. "\nFluent-modded is not compatible with your mobile client. Use Kairo UI instead.")
-end
+local Window = Fluent:CreateWindow({
+    Title = "W424HUB-GAG2",
+    SubTitle = "V.3.0 | Grow a Garden 2",
+    Size = UDim2.fromOffset(w, h),
+    MinimizeKey = Enum.KeyCode.RightShift,
+})
+print("Window created.")
 
 -- ============================================================
---  CORE DATABASE AND FUNCTIONS (UNCHANGED, FULL)
+--  CORE FUNCTIONS (unchanged)
 -- ============================================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -442,7 +363,7 @@ local function performSteal()
 end
 
 -- ============================================================
---  STATE AND UI BUILDING
+--  STATE
 -- ============================================================
 local S = {
     autoHarvest = false,
@@ -458,6 +379,9 @@ local S = {
     optimize = false,
 }
 
+-- ============================================================
+--  UI BUILDING (FLUENT LITE)
+-- ============================================================
 print("Building UI tabs...")
 
 -- FARM TAB
@@ -468,10 +392,13 @@ FarmTab:AddToggle("AutoSell", { Title = "Auto Sell", Description = "Jual semua b
 FarmTab:AddInput("SellInterval", { Title = "Sell Interval", Description = "Jeda antar jual (detik)", Default = "60", Numeric = true, Finished = true, Callback = function(v) S.sellInterval = tonumber(v) or 60 end })
 FarmTab:AddToggle("AutoPlant", { Title = "Auto Plant", Description = "Tanam bibit dari inventory", Default = false, Callback = function(v) S.autoPlant = v end })
 FarmTab:AddInput("PlantInterval", { Title = "Plant Interval", Description = "Jeda antar tanam (detik)", Default = "10", Numeric = true, Finished = true, Callback = function(v) S.plantInterval = tonumber(v) or 10 end })
+
 local harvestOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(harvestOptions, seed) end
 FarmTab:AddDropdown("HarvestItem", { Title = "Harvest Item", Description = "Pilih tanaman (Bisa lebih dari 1)", Values = harvestOptions, Multi = true, Default = {"All"}, Callback = function(v) Selected.harvestItem = v end })
+
 local plantOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(plantOptions, seed) end
 FarmTab:AddDropdown("PlantItem", { Title = "Plant Item", Description = "Pilih bibit (Bisa lebih dari 1)", Values = plantOptions, Multi = true, Default = {"All"}, Callback = function(v) Selected.plantItem = v end })
+
 FarmTab:AddButton("HarvestNow", { Title = "Harvest Now", Description = "Panen sekali sekarang", Callback = function() local count = harvestSpecific(Selected.harvestItem); Fluent:Notify({ Title = "Harvest", Content = "Panen " .. count .. " tanaman", Duration = 2 }) end })
 FarmTab:AddButton("SellNow", { Title = "Sell Now", Description = "Jual semua sekarang", Callback = function() sellAll(); Fluent:Notify({ Title = "Sell", Content = "Semua terjual!", Duration = 2 }) end })
 FarmTab:AddButton("PlantNow", { Title = "Plant Now", Description = "Tanam sekali sekarang", Callback = function() plantSpecific(Selected.plantItem); Fluent:Notify({ Title = "Plant", Content = "Menanam bibit terpilih", Duration = 2 }) end })
@@ -481,8 +408,10 @@ local ShopTab = Window:AddTab({ Title = "Shop", Icon = "solar/cart-bold" })
 ShopTab:AddParagraph({ Title = "Auto Shop", Content = "Beli & Buka Item" })
 ShopTab:AddToggle("AutoBuy", { Title = "Auto Buy", Description = "Beli item otomatis", Default = false, Callback = function(v) S.autoBuy = v end })
 ShopTab:AddInput("BuyInterval", { Title = "Buy Interval", Description = "Jeda antar beli (detik)", Default = "30", Numeric = true, Finished = true, Callback = function(v) S.buyInterval = tonumber(v) or 30 end })
+
 local buyOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(buyOptions, seed) end for _, gear in ipairs(GEARS) do table.insert(buyOptions, gear) end for _, crate in ipairs(CRATES) do table.insert(buyOptions, crate) end
 ShopTab:AddDropdown("BuyItem", { Title = "Buy Item", Description = "Pilih item (Bisa lebih dari 1)", Values = buyOptions, Multi = true, Default = {"All"}, Callback = function(v) Selected.buyItem = v end })
+
 ShopTab:AddButton("BuyNow", { Title = "Buy Now", Description = "Beli sekarang", Callback = function() buySpecific(Selected.buyItem); Fluent:Notify({ Title = "Buy", Content = "Membeli item terpilih", Duration = 2 }) end })
 ShopTab:AddDivider()
 ShopTab:AddButton("OpenEggs", { Title = "Open All Eggs", Description = "Buka semua telur", Callback = function() openItems("Eggs"); Fluent:Notify({ Title = "Open", Content = "Semua telur dibuka!", Duration = 2 }) end })
@@ -577,4 +506,4 @@ Fluent:Notify({
     Duration = 5
 })
 
-print("✅ W424HUB-GAG2 V.3.0 (Fluent ultimate) fully loaded!")
+print("✅ W424HUB-GAG2 V.3.0 (Fluent Lite) fully loaded!")
