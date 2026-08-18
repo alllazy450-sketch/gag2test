@@ -1,8 +1,8 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (KAIRO UI – CONFIG DISABLED)
+--  W424HUB-GAG2 | V.3.0 (KAIRO UI – INPUT INTERVALS + BUBBLE)
 --  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (KAIRO) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (KAIRO INPUT) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
@@ -11,7 +11,7 @@ local Kairo = loadstring(game:HttpGet("https://raw.githubusercontent.com/Itzzavi
 if not Kairo then error("Kairo UI gagal dimuat") end
 print("Kairo UI loaded.")
 
--- ===== CREATE WINDOW (config disabled, choose your theme) =====
+-- ===== CREATE WINDOW (config disabled) =====
 local Camera = workspace.CurrentCamera
 local ViewportSize = Camera and Camera.ViewportSize or Vector2.new(400, 600)
 local w = math.clamp(ViewportSize.X - 20, 280, 400)
@@ -20,7 +20,7 @@ local h = math.clamp(ViewportSize.Y - 80, 380, 480)
 local Window = Kairo:CreateWindow({
     Title = "W424HUB-GAG2",
     SubTitle = "V.3.0 | Grow a Garden 2",
-    Theme = "Midnight",   -- Change to "Crimson", "Forest", "Sakura", etc.
+    Theme = "Midnight",   -- change to "Crimson", "Forest", "Sakura", etc.
     Size = UDim2.fromOffset(w, h),
     Center = true,
     Draggable = true,
@@ -31,10 +31,10 @@ local Window = Kairo:CreateWindow({
     MinimizeButton_Image = "rbxassetid://116850882259653",
     Config = { Enabled = false },   -- Disabled to avoid writefile errors
 })
-print("Window created with Kairo UI.")
+print("Window created.")
 
 -- ============================================================
---  FLOATING TOGGLE BUBBLE (since Kairo's minimize key might not work on mobile)
+--  FLOATING TOGGLE BUBBLE (FIXED)
 -- ============================================================
 local CoreGui = game:GetService("CoreGui")
 
@@ -43,16 +43,17 @@ local function createBubble()
     screenGui.Name = "W424HUB_Bubble"
     screenGui.Parent = CoreGui
     screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global   -- ensures it's above all
 
     local button = Instance.new("ImageButton")
     button.Size = UDim2.new(0, 55, 0, 55)
     button.Position = UDim2.new(1, -65, 1, -65)
-    button.BackgroundColor3 = Color3.fromRGB(120, 80, 255) -- match accent
+    button.BackgroundColor3 = Color3.fromRGB(120, 80, 255)
     button.BackgroundTransparency = 0.15
     button.BorderSizePixel = 0
     button.Image = "rbxassetid://"
     button.AutoButtonColor = false
+    button.ZIndex = 10   -- ensure it's above everything
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(1, 0)
@@ -117,7 +118,7 @@ createBubble()
 print("Bubble created.")
 
 -- ============================================================
---  CORE DATABASE AND FUNCTIONS (same as before)
+--  CORE DATABASE AND FUNCTIONS (unchanged)
 -- ============================================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -471,7 +472,7 @@ local S = {
 }
 
 -- ============================================================
---  UI BUILDING (KAIRO)
+--  UI BUILDING (KAIRO – with AddInput for intervals)
 -- ============================================================
 print("Building UI tabs...")
 
@@ -482,9 +483,20 @@ Window:AddParagraph(FarmTab, "Auto Farm", "Panen & Tanam Otomatis")
 
 Window:AddToggle(FarmTab, "Auto Harvest", "Panen otomatis tanpa jeda", false, function(v) S.autoHarvest = v end, "AutoHarvest")
 Window:AddToggle(FarmTab, "Auto Sell", "Jual semua buah otomatis", false, function(v) S.autoSell = v end, "AutoSell")
-Window:AddInput(FarmTab, "Sell Interval", "Jeda antar jual (detik)", "60", function(v) S.sellInterval = tonumber(v) or 60 end, "SellInterval")
+
+-- INPUT for Sell Interval (no slider)
+Window:AddInput(FarmTab, "Sell Interval", "Jeda antar jual (detik)", "60", function(v)
+    local num = tonumber(v)
+    S.sellInterval = num and num > 0 and num or 60
+end, "SellInterval")
+
 Window:AddToggle(FarmTab, "Auto Plant", "Tanam bibit dari inventory", false, function(v) S.autoPlant = v end, "AutoPlant")
-Window:AddInput(FarmTab, "Plant Interval", "Jeda antar tanam (detik)", "10", function(v) S.plantInterval = tonumber(v) or 10 end, "PlantInterval")
+
+-- INPUT for Plant Interval
+Window:AddInput(FarmTab, "Plant Interval", "Jeda antar tanam (detik)", "10", function(v)
+    local num = tonumber(v)
+    S.plantInterval = num and num > 0 and num or 10
+end, "PlantInterval")
 
 local harvestOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(harvestOptions, seed) end
 Window:AddDropdown(FarmTab, "Harvest Item", "Pilih tanaman (Bisa lebih dari 1)", harvestOptions, true, {}, function(v) Selected.harvestItem = v end, "HarvestItem")
@@ -513,7 +525,12 @@ local ShopTab = Window:CreateTab("Shop", "rbxassetid://16932740082")
 Window:AddParagraph(ShopTab, "Auto Shop", "Beli & Buka Item")
 
 Window:AddToggle(ShopTab, "Auto Buy", "Beli item otomatis", false, function(v) S.autoBuy = v end, "AutoBuy")
-Window:AddInput(ShopTab, "Buy Interval", "Jeda antar beli (detik)", "30", function(v) S.buyInterval = tonumber(v) or 30 end, "BuyInterval")
+
+-- INPUT for Buy Interval
+Window:AddInput(ShopTab, "Buy Interval", "Jeda antar beli (detik)", "30", function(v)
+    local num = tonumber(v)
+    S.buyInterval = num and num > 0 and num or 30
+end, "BuyInterval")
 
 local buyOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(buyOptions, seed) end for _, gear in ipairs(GEARS) do table.insert(buyOptions, gear) end for _, crate in ipairs(CRATES) do table.insert(buyOptions, crate) end
 Window:AddDropdown(ShopTab, "Buy Item", "Pilih item (Bisa lebih dari 1)", buyOptions, true, {}, function(v) Selected.buyItem = v end, "BuyItem")
@@ -546,7 +563,12 @@ local StealTab = Window:CreateTab("Steal", "rbxassetid://16932740082")
 Window:AddParagraph(StealTab, "Auto Steal", "Curi buah saat malam")
 
 Window:AddToggle(StealTab, "Auto Steal", "Curi otomatis saat malam", false, function(v) S.autoSteal = v end, "AutoSteal")
-Window:AddInput(StealTab, "Steal Interval", "Jeda antar curi (detik)", "5", function(v) S.stealInterval = tonumber(v) or 5 end, "StealInterval")
+
+-- INPUT for Steal Interval
+Window:AddInput(StealTab, "Steal Interval", "Jeda antar curi (detik)", "5", function(v)
+    local num = tonumber(v)
+    S.stealInterval = num and num > 0 and num or 5
+end, "StealInterval")
 
 Window:AddButton(StealTab, "Steal Now", "Coba curi sekali sekarang", "rbxassetid://16932740082", function()
     performSteal()
@@ -638,4 +660,4 @@ Window:Notify({
     Delay = 5
 })
 
-print("✅ W424HUB-GAG2 V.3.0 (Kairo UI) fully loaded!")
+print("✅ W424HUB-GAG2 V.3.0 (Kairo UI – input intervals) fully loaded!")
