@@ -1,8 +1,8 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (FLUENT-MODDED UI)
+--  W424HUB-GAG2 | V.3.0 (FLUENT-MODDED UI - FIXED)
 --  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT FIXED) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
@@ -21,19 +21,36 @@ local VirtualUser = game:GetService("VirtualUser")
 local Fluent = loadstring(game:HttpGet("https://github.com/StyearX/Fluent-Modded/releases/download/Fluent/FluentPro"))()
 if not Fluent then error("Fluent-modded UI gagal dimuat") end
 
--- ===== UI SIZE (MOBILE ADAPTIVE) =====
-local ScreenSize = workspace.CurrentCamera.ViewportSize
-local MobileWidth = math.clamp(ScreenSize.X - 20, 280, 400)
-local MobileHeight = math.clamp(ScreenSize.Y - 80, 380, 480)
+-- ===== UI SIZE (MOBILE ADAPTIVE) – WITH SAFE FALLBACK =====
+local ScreenSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
+local MobileWidth = (ScreenSize and math.clamp(ScreenSize.X - 20, 280, 400)) or 360
+local MobileHeight = (ScreenSize and math.clamp(ScreenSize.Y - 80, 380, 480)) or 420
 
-local Window = Fluent:CreateWindow({
-    Title = "W424HUB-GAG2",
-    SubTitle = "V.3.0 | Grow a Garden 2",
-    Size = UDim2.fromOffset(MobileWidth, MobileHeight),
-    Acrylic = true,
-    Theme = "AMOLED",
-    MinimizeKey = Enum.KeyCode.RightShift,
-})
+-- ===== CREATE WINDOW WITH ERROR HANDLING =====
+local Window
+local success, err = pcall(function()
+    Window = Fluent:CreateWindow({
+        Title = "W424HUB-GAG2",
+        SubTitle = "V.3.0 | Grow a Garden 2",
+        -- Use a table for Size to avoid UDim2 arithmetic bugs in the library
+        Size = { X = MobileWidth, Y = MobileHeight },
+        Acrylic = true,
+        Theme = "AMOLED",
+        MinimizeKey = Enum.KeyCode.RightShift,
+    })
+end)
+
+if not success then
+    warn("Fluent CreateWindow failed: " .. tostring(err) .. ". Retrying with default size.")
+    Window = Fluent:CreateWindow({
+        Title = "W424HUB-GAG2",
+        SubTitle = "V.3.0 | Grow a Garden 2",
+        -- Omit Size to use library default
+        Acrylic = true,
+        Theme = "AMOLED",
+        MinimizeKey = Enum.KeyCode.RightShift,
+    })
+end
 
 -- ============================================================
 --  ITEM DATABASE
@@ -423,7 +440,7 @@ local S = {
 }
 
 -- ============================================================
---  UI – FLUENT-MODDED (FULLY CONVERTED)
+--  UI – FLUENT-MODDED (FULLY CONVERTED WITH FIXES)
 -- ============================================================
 
 -- ===== TAB: FARM =====
@@ -732,4 +749,4 @@ Fluent:Notify({
     Duration = 5
 })
 
-print("✅ W424HUB-GAG2 V.3.0 (Fluent UI) loaded!")
+print("✅ W424HUB-GAG2 V.3.0 (Fluent UI - FIXED) loaded!")
