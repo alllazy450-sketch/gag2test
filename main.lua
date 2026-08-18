@@ -1,31 +1,17 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (MODERNV2 + BUBBLE + ICONS + NO WRITE)
+--  W424HUB-GAG2 | V.3.0 (MODERNV2 – CONFIG DISABLED)
 --  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (MODERNV2 NO-WRITE) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (MODERNV2 NO CONFIG) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
-
--- ===== OVERRIDE WRITEFILE TO BLOCK CONFIG WRITES =====
-local oldWriteFile = writefile
-writefile = function(path, content)
-    -- Block any write to Modernv2Configs folder (or any .json/.cfg file)
-    if path and (string.find(path, "Modernv2Configs") or string.find(path, "W424HUB") or string.find(path, "%.[cC][fF][gG]") or string.find(path, "%.[jJ][sS][oO][nN]")) then
-        print("Blocked writefile to:", path)
-        return
-    end
-    -- Otherwise, call original if it exists
-    if oldWriteFile then
-        return oldWriteFile(path, content)
-    end
-end
 
 -- ===== LOAD MODERNV2 UI =====
 local ModernV2 = loadstring(game:HttpGet("https://robloxui.vercel.app/"))()
 if not ModernV2 then error("ModernV2 UI gagal dimuat") end
 print("ModernV2 UI loaded.")
 
--- ===== CREATE WINDOW (no config) =====
+-- ===== CREATE WINDOW (config disabled) =====
 local Camera = workspace.CurrentCamera
 local ViewportSize = Camera and Camera.ViewportSize or Vector2.new(400, 600)
 local w = math.clamp(ViewportSize.X - 20, 280, 400)
@@ -37,15 +23,17 @@ local Window = ModernV2:Window({
     Size = UDim2.fromOffset(w, h),
     Resizable = false,
     Keybind = "RightControl",
-    -- No Config section to avoid file writes (already overridden)
+    -- DISABLE CONFIG: no file writes, no errors
+    Config = {
+        Enabled = false,
+    },
 })
 print("Window created.")
 
 -- ============================================================
---  FLOATING TOGGLE BUBBLE (same as before)
+--  FLOATING TOGGLE BUBBLE (draggable)
 -- ============================================================
 local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
 
 local function createFloatingButton()
     local screenGui = Instance.new("ScreenGui")
@@ -57,7 +45,7 @@ local function createFloatingButton()
     button.Name = "ToggleButton"
     button.Size = UDim2.new(0, 55, 0, 55)
     button.Position = UDim2.new(1, -65, 1, -65)
-    button.Image = "rbxassetid://" -- use background
+    button.Image = "rbxassetid://"
     button.BackgroundColor3 = Color3.fromRGB(70, 120, 255)
     button.BackgroundTransparency = 0.2
     button.BorderSizePixel = 0
@@ -74,7 +62,6 @@ local function createFloatingButton()
     label.Size = UDim2.new(1,0,1,0)
     label.Parent = button
 
-    -- Drag logic
     local dragging = false
     local dragStart, buttonStart
     button.InputBegan:Connect(function(input)
@@ -482,12 +469,11 @@ local S = {
 -- ============================================================
 print("Building UI tabs...")
 
--- Icon asset IDs (you can replace with your own)
 local ICONS = {
-    FARM = "rbxassetid://16932740082",   -- placeholder
-    SHOP = "rbxassetid://16932740082",   -- placeholder
-    STEAL = "rbxassetid://16932740082",  -- placeholder
-    MISC = "rbxassetid://16932740082",   -- placeholder
+    FARM = "rbxassetid://16932740082",
+    SHOP = "rbxassetid://16932740082",
+    STEAL = "rbxassetid://16932740082",
+    MISC = "rbxassetid://16932740082",
 }
 
 -- FARM TAB
@@ -635,4 +621,4 @@ LocalPlayer.Idled:Connect(function()
 end)
 
 ModernV2:Notify("W424HUB-GAG2", "V.3.0 – Tap 'W' bubble to toggle", 5)
-print("✅ W424HUB-GAG2 V.3.0 (ModernV2 no-write) fully loaded!")
+print("✅ W424HUB-GAG2 V.3.0 (ModernV2 – config disabled) fully loaded!")
