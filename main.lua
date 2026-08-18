@@ -1,86 +1,64 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (MODERNV2 – BLOCK WRITES)
+--  W424HUB-GAG2 | V.3.0 (WINDUI + CUSTOM THEME + BUBBLE)
 --  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (BLOCK WRITES) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (WINDUI) ===")
 
--- ===== BLOCK ALL WRITES TO ModernV2Configs =====
-local oldWrite = writefile
-writefile = function(path, content)
-    if path and string.find(path, "ModernV2Configs") then
-        print("Blocked write to:", path)
-        return
-    end
-    if oldWrite then
-        return oldWrite(path, content)
-    end
-end
-
--- Also block readfile/listfiles if they exist to avoid other errors
-local oldRead = readfile
-readfile = function(path)
-    if path and string.find(path, "ModernV2Configs") then
-        return "" -- pretend file doesn't exist
-    end
-    if oldRead then
-        return oldRead(path)
-    end
-    return nil
-end
-
-local oldList = listfiles
-listfiles = function(folder)
-    if folder and string.find(folder, "ModernV2Configs") then
-        return {} -- empty list
-    end
-    if oldList then
-        return oldList(folder)
-    end
-    return {}
-end
-
--- ===== LOAD MODERNV2 UI =====
 if not game:IsLoaded() then game.Loaded:Wait() end
 
-local ModernV2 = loadstring(game:HttpGet("https://robloxui.vercel.app/"))()
-if not ModernV2 then error("ModernV2 UI gagal dimuat") end
-print("ModernV2 UI loaded.")
+-- ===== LOAD WINDUI =====
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+if not WindUI then error("WindUI gagal dimuat") end
+print("WindUI loaded.")
 
--- ===== CREATE WINDOW (config disabled) =====
+-- ===== CREATE WINDOW WITH CUSTOM THEME =====
 local Camera = workspace.CurrentCamera
 local ViewportSize = Camera and Camera.ViewportSize or Vector2.new(400, 600)
 local w = math.clamp(ViewportSize.X - 20, 280, 400)
 local h = math.clamp(ViewportSize.Y - 80, 380, 480)
 
-local Window = ModernV2:Window({
+-- Customize these colors to your liking
+local MyTheme = {
+    Accent = Color3.fromRGB(120, 80, 255),   -- Purple-blue accent
+    Background = Color3.fromRGB(18, 18, 28), -- Dark background
+    Text = Color3.fromRGB(255, 255, 255),    -- White text
+    -- You can also add: SubText, Border, etc.
+}
+
+local Window = WindUI:CreateWindow({
     Title = "W424HUB-GAG2",
-    Content = "V.3.0 | Grow a Garden 2",
+    Author = "V.3.0 | Grow a Garden 2",
+    Folder = "W424HUB_WindUI",
+    Icon = "solar:folder-2-bold-duotone",
     Size = UDim2.fromOffset(w, h),
-    Resizable = false,
-    Keybind = "RightControl",
-    Config = { Enabled = false }, -- still set to false, but override handles everything
+    Theme = MyTheme,   -- Apply custom theme
+    OpenButton = {
+        Enabled = false, -- disable default button (we use custom bubble)
+    },
 })
-print("Window created.")
+print("Window created with custom theme.")
 
 -- ============================================================
---  FLOATING TOGGLE BUBBLE (draggable)
+--  CUSTOM FLOATING BUBBLE
 -- ============================================================
 local CoreGui = game:GetService("CoreGui")
 
-local function createFloatingButton()
+local function createBubble()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "W424HUB_Bubble"
     screenGui.Parent = CoreGui
     screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
     local button = Instance.new("ImageButton")
-    button.Name = "ToggleButton"
     button.Size = UDim2.new(0, 55, 0, 55)
     button.Position = UDim2.new(1, -65, 1, -65)
-    button.Image = "rbxassetid://"
-    button.BackgroundColor3 = Color3.fromRGB(70, 120, 255)
-    button.BackgroundTransparency = 0.2
+    button.BackgroundColor3 = MyTheme.Accent or Color3.fromRGB(120, 80, 255)
+    button.BackgroundTransparency = 0.15
     button.BorderSizePixel = 0
+    button.Image = "rbxassetid://"
+    button.AutoButtonColor = false
+
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(1, 0)
     corner.Parent = button
@@ -94,6 +72,17 @@ local function createFloatingButton()
     label.Size = UDim2.new(1,0,1,0)
     label.Parent = button
 
+    local glow = Instance.new("ImageLabel")
+    glow.Size = UDim2.new(1.2, 0, 1.2, 0)
+    glow.Position = UDim2.new(-0.1, 0, -0.1, 0)
+    glow.BackgroundTransparency = 1
+    glow.Image = "rbxassetid://"
+    glow.ImageColor3 = MyTheme.Accent or Color3.fromRGB(120, 80, 255)
+    glow.ImageTransparency = 0.8
+    glow.ZIndex = 0
+    glow.Parent = button
+
+    -- Drag logic
     local dragging = false
     local dragStart, buttonStart
     button.InputBegan:Connect(function(input)
@@ -122,28 +111,17 @@ local function createFloatingButton()
     end)
 
     button.MouseButton1Click:Connect(function()
-        if Window.Toggle then
-            Window:Toggle()
-        else
-            local frame = Window.Frame or Window._Window
-            if frame then
-                frame.Visible = not frame.Visible
-            else
-                local gui = CoreGui:FindFirstChild("ModernV2") or CoreGui:FindFirstChild("W424HUB-GAG2")
-                if gui then
-                    gui.Enabled = not gui.Enabled
-                end
-            end
-        end
+        Window:Toggle()
     end)
-    return button
+
+    button.Parent = screenGui
 end
 
-createFloatingButton()
-print("Floating bubble created.")
+createBubble()
+print("Custom bubble created.")
 
 -- ============================================================
---  CORE DATABASE AND FUNCTIONS (unchanged)
+--  CORE DATABASE AND FUNCTIONS
 -- ============================================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -497,111 +475,211 @@ local S = {
 }
 
 -- ============================================================
---  UI BUILDING (ModernV2 with icons)
+--  UI BUILDING (WINDUI)
 -- ============================================================
 print("Building UI tabs...")
 
-local ICONS = {
-    FARM = "rbxassetid://16932740082",
-    SHOP = "rbxassetid://16932740082",
-    STEAL = "rbxassetid://16932740082",
-    MISC = "rbxassetid://16932740082",
-}
-
 -- FARM TAB
-local FarmTab = Window:Tab("Farm", ICONS.FARM)
-FarmTab:Paragraph("Auto Farm", "Panen & Tanam Otomatis")
-FarmTab:Toggle("Auto Harvest", "Panen otomatis tanpa jeda", function(v) S.autoHarvest = v end)
-FarmTab:Toggle("Auto Sell", "Jual semua buah otomatis", function(v) S.autoSell = v end)
-FarmTab:Slider("Sell Interval", "Jeda antar jual (detik)", 10, 120, 60, function(v) S.sellInterval = v end)
-FarmTab:Toggle("Auto Plant", "Tanam bibit dari inventory", function(v) S.autoPlant = v end)
-FarmTab:Slider("Plant Interval", "Jeda antar tanam (detik)", 5, 60, 10, function(v) S.plantInterval = v end)
+local FarmTab = Window:Tab({ Title = "Farm", Icon = "solar:plant-bold" })
+FarmTab:Paragraph({ Title = "Auto Farm", Content = "Panen & Tanam Otomatis" })
+FarmTab:Toggle({
+    Title = "Auto Harvest",
+    Description = "Panen otomatis tanpa jeda",
+    Default = false,
+    Callback = function(v) S.autoHarvest = v end,
+})
+FarmTab:Toggle({
+    Title = "Auto Sell",
+    Description = "Jual semua buah otomatis",
+    Default = false,
+    Callback = function(v) S.autoSell = v end,
+})
+FarmTab:Slider({
+    Title = "Sell Interval",
+    Description = "Jeda antar jual (detik)",
+    Min = 10,
+    Max = 120,
+    Default = 60,
+    Callback = function(v) S.sellInterval = v end,
+})
+FarmTab:Toggle({
+    Title = "Auto Plant",
+    Description = "Tanam bibit dari inventory",
+    Default = false,
+    Callback = function(v) S.autoPlant = v end,
+})
+FarmTab:Slider({
+    Title = "Plant Interval",
+    Description = "Jeda antar tanam (detik)",
+    Min = 5,
+    Max = 60,
+    Default = 10,
+    Callback = function(v) S.plantInterval = v end,
+})
 
 local harvestOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(harvestOptions, seed) end
-FarmTab:Dropdown("Harvest Item", "Pilih tanaman (Bisa lebih dari 1)", harvestOptions, function(v) Selected.harvestItem = v end, true)
+FarmTab:Dropdown({
+    Title = "Harvest Item",
+    Description = "Pilih tanaman (Bisa lebih dari 1)",
+    Options = harvestOptions,
+    Multiselect = true,
+    Default = {"All"},
+    Callback = function(v) Selected.harvestItem = v end,
+})
 
 local plantOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(plantOptions, seed) end
-FarmTab:Dropdown("Plant Item", "Pilih bibit (Bisa lebih dari 1)", plantOptions, function(v) Selected.plantItem = v end, true)
+FarmTab:Dropdown({
+    Title = "Plant Item",
+    Description = "Pilih bibit (Bisa lebih dari 1)",
+    Options = plantOptions,
+    Multiselect = true,
+    Default = {"All"},
+    Callback = function(v) Selected.plantItem = v end,
+})
 
-FarmTab:Button("Harvest Now", function()
-    local count = harvestSpecific(Selected.harvestItem)
-    ModernV2:Notify("Harvest", "Panen " .. count .. " tanaman", 2)
-end)
-
-FarmTab:Button("Sell Now", function()
-    sellAll()
-    ModernV2:Notify("Sell", "Semua terjual!", 2)
-end)
-
-FarmTab:Button("Plant Now", function()
-    plantSpecific(Selected.plantItem)
-    ModernV2:Notify("Plant", "Menanam bibit terpilih", 2)
-end)
+FarmTab:Button({
+    Title = "Harvest Now",
+    Callback = function()
+        local count = harvestSpecific(Selected.harvestItem)
+        WindUI:Notify({ Title = "Harvest", Content = "Panen " .. count .. " tanaman", Duration = 2 })
+    end,
+})
+FarmTab:Button({
+    Title = "Sell Now",
+    Callback = function()
+        sellAll()
+        WindUI:Notify({ Title = "Sell", Content = "Semua terjual!", Duration = 2 })
+    end,
+})
+FarmTab:Button({
+    Title = "Plant Now",
+    Callback = function()
+        plantSpecific(Selected.plantItem)
+        WindUI:Notify({ Title = "Plant", Content = "Menanam bibit terpilih", Duration = 2 })
+    end,
+})
 
 -- SHOP TAB
-local ShopTab = Window:Tab("Shop", ICONS.SHOP)
-ShopTab:Paragraph("Auto Shop", "Beli & Buka Item")
-ShopTab:Toggle("Auto Buy", "Beli item otomatis", function(v) S.autoBuy = v end)
-ShopTab:Slider("Buy Interval", "Jeda antar beli (detik)", 10, 120, 30, function(v) S.buyInterval = v end)
+local ShopTab = Window:Tab({ Title = "Shop", Icon = "solar:cart-bold" })
+ShopTab:Paragraph({ Title = "Auto Shop", Content = "Beli & Buka Item" })
+ShopTab:Toggle({
+    Title = "Auto Buy",
+    Description = "Beli item otomatis",
+    Default = false,
+    Callback = function(v) S.autoBuy = v end,
+})
+ShopTab:Slider({
+    Title = "Buy Interval",
+    Description = "Jeda antar beli (detik)",
+    Min = 10,
+    Max = 120,
+    Default = 30,
+    Callback = function(v) S.buyInterval = v end,
+})
 
 local buyOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(buyOptions, seed) end for _, gear in ipairs(GEARS) do table.insert(buyOptions, gear) end for _, crate in ipairs(CRATES) do table.insert(buyOptions, crate) end
-ShopTab:Dropdown("Buy Item", "Pilih item (Bisa lebih dari 1)", buyOptions, function(v) Selected.buyItem = v end, true)
+ShopTab:Dropdown({
+    Title = "Buy Item",
+    Description = "Pilih item (Bisa lebih dari 1)",
+    Options = buyOptions,
+    Multiselect = true,
+    Default = {"All"},
+    Callback = function(v) Selected.buyItem = v end,
+})
 
-ShopTab:Button("Buy Now", function()
-    buySpecific(Selected.buyItem)
-    ModernV2:Notify("Buy", "Membeli item terpilih", 2)
-end)
+ShopTab:Button({
+    Title = "Buy Now",
+    Callback = function()
+        buySpecific(Selected.buyItem)
+        WindUI:Notify({ Title = "Buy", Content = "Membeli item terpilih", Duration = 2 })
+    end,
+})
 
 ShopTab:Divider()
-ShopTab:Button("Open All Eggs", function()
-    openItems("Eggs")
-    ModernV2:Notify("Open", "Semua telur dibuka!", 2)
-end)
-
-ShopTab:Button("Open All Crates", function()
-    openItems("Crates")
-    ModernV2:Notify("Open", "Semua crate dibuka!", 2)
-end)
-
-ShopTab:Button("Open All Seed Packs", function()
-    openItems("SeedPacks")
-    ModernV2:Notify("Open", "Semua seed pack dibuka!", 2)
-end)
+ShopTab:Button({
+    Title = "Open All Eggs",
+    Callback = function()
+        openItems("Eggs")
+        WindUI:Notify({ Title = "Open", Content = "Semua telur dibuka!", Duration = 2 })
+    end,
+})
+ShopTab:Button({
+    Title = "Open All Crates",
+    Callback = function()
+        openItems("Crates")
+        WindUI:Notify({ Title = "Open", Content = "Semua crate dibuka!", Duration = 2 })
+    end,
+})
+ShopTab:Button({
+    Title = "Open All Seed Packs",
+    Callback = function()
+        openItems("SeedPacks")
+        WindUI:Notify({ Title = "Open", Content = "Semua seed pack dibuka!", Duration = 2 })
+    end,
+})
 
 -- STEAL TAB
-local StealTab = Window:Tab("Steal", ICONS.STEAL)
-StealTab:Paragraph("Auto Steal", "Curi buah saat malam")
-StealTab:Toggle("Auto Steal", "Curi otomatis saat malam", function(v) S.autoSteal = v end)
-StealTab:Slider("Steal Interval", "Jeda antar curi (detik)", 1, 30, 5, function(v) S.stealInterval = v end)
-StealTab:Button("Steal Now", function()
-    performSteal()
-    ModernV2:Notify("Steal", "Mencoba mencuri...", 2)
-end)
+local StealTab = Window:Tab({ Title = "Steal", Icon = "solar:crime-bold" })
+StealTab:Paragraph({ Title = "Auto Steal", Content = "Curi buah saat malam" })
+StealTab:Toggle({
+    Title = "Auto Steal",
+    Description = "Curi otomatis saat malam",
+    Default = false,
+    Callback = function(v) S.autoSteal = v end,
+})
+StealTab:Slider({
+    Title = "Steal Interval",
+    Description = "Jeda antar curi (detik)",
+    Min = 1,
+    Max = 30,
+    Default = 5,
+    Callback = function(v) S.stealInterval = v end,
+})
+StealTab:Button({
+    Title = "Steal Now",
+    Callback = function()
+        performSteal()
+        WindUI:Notify({ Title = "Steal", Content = "Mencoba mencuri...", Duration = 2 })
+    end,
+})
 
 -- MISC TAB
-local MiscTab = Window:Tab("Misc", ICONS.MISC)
-MiscTab:Paragraph("Lainnya", "Fitur tambahan")
-MiscTab:Toggle("Anti-AFK", "Cegah idle kick", function(v) S.antiAfk = v end, true)
-MiscTab:Toggle("Optimize (FPS)", "Kurangi grafis untuk FPS tinggi", function(v)
-    S.optimize = v
-    if v then
-        Lighting.GlobalShadows = false
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-        for _, e in ipairs(Lighting:GetDescendants()) do
-            if e:IsA("PostEffect") or e:IsA("Atmosphere") then
-                pcall(function() e.Enabled = false end)
+local MiscTab = Window:Tab({ Title = "Misc", Icon = "solar:settings-bold" })
+MiscTab:Paragraph({ Title = "Lainnya", Content = "Fitur tambahan" })
+MiscTab:Toggle({
+    Title = "Anti-AFK",
+    Description = "Cegah idle kick",
+    Default = true,
+    Callback = function(v) S.antiAfk = v end,
+})
+MiscTab:Toggle({
+    Title = "Optimize (FPS)",
+    Description = "Kurangi grafis untuk FPS tinggi",
+    Default = false,
+    Callback = function(v)
+        S.optimize = v
+        if v then
+            Lighting.GlobalShadows = false
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+            for _, e in ipairs(Lighting:GetDescendants()) do
+                if e:IsA("PostEffect") or e:IsA("Atmosphere") then
+                    pcall(function() e.Enabled = false end)
+                end
             end
+        else
+            Lighting.GlobalShadows = true
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
         end
-    else
-        Lighting.GlobalShadows = true
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
-    end
-end)
-MiscTab:Button("Unload Script", function()
-    Window:Destroy()
-    local bubble = CoreGui:FindFirstChild("W424HUB_Bubble")
-    if bubble then bubble:Destroy() end
-end)
+    end,
+})
+MiscTab:Button({
+    Title = "Unload Script",
+    Callback = function()
+        Window:Destroy()
+        local bubble = CoreGui:FindFirstChild("W424HUB_Bubble")
+        if bubble then bubble:Destroy() end
+    end,
+})
 
 print("All UI tabs built.")
 
@@ -652,5 +730,5 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
-ModernV2:Notify("W424HUB-GAG2", "V.3.0 – Tap 'W' bubble to toggle", 5)
-print("✅ W424HUB-GAG2 V.3.0 (ModernV2 – block writes) fully loaded!")
+WindUI:Notify({ Title = "W424HUB-GAG2", Content = "V.3.0 – Tap 'W' bubble to toggle", Duration = 5 })
+print("✅ W424HUB-GAG2 V.3.0 (WindUI + custom theme + bubble) fully loaded!")
