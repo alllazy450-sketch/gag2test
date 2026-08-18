@@ -1,97 +1,39 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (FLUENT LITE – PATCHED)
---  Grow a Garden 2 – Mobile-Optimized
+--  W424HUB-GAG2 | V.3.0 (MODERNV2 UI)
+--  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT PATCHED) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (MODERNV2) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- ===== SAFE FLUENT LOADER WITH MULTIPLE SOURCES =====
-local Fluent
-local function fetchFluent()
-    local urls = {
-        "https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua",
-        "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/init.lua",
-        "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/source.lua",
-    }
-    local errors = {}
-    for _, url in ipairs(urls) do
-        local ok, content = pcall(function() return game:HttpGet(url, true) end)
-        if ok and content and type(content) == "string" and #content > 100 then
-            local fn, compileErr = loadstring(content)
-            if fn then
-                local lib = fn()
-                if lib and type(lib) == "table" and lib.CreateWindow then
-                    print("✅ Fluent loaded from:", url)
-                    return lib
-                else
-                    table.insert(errors, "Invalid library from " .. url)
-                end
-            else
-                table.insert(errors, "Compile error: " .. tostring(compileErr))
-            end
-        else
-            table.insert(errors, "Fetch failed: " .. tostring(ok) .. " (" .. tostring(content) .. ")")
-        end
-        task.wait(0.2)
-    end
-    error("All Fluent load attempts failed:\n" .. table.concat(errors, "\n"))
-end
+-- ===== LOAD MODERNV2 UI =====
+local ModernV2 = loadstring(game:HttpGet("https://robloxui.vercel.app/"))()
+if not ModernV2 then error("ModernV2 UI gagal dimuat") end
+print("ModernV2 UI loaded.")
 
-Fluent = fetchFluent()
-print("Fluent Lite loaded successfully.")
+-- ===== CREATE WINDOW (mobile-sized) =====
+local Camera = workspace.CurrentCamera
+local ViewportSize = Camera and Camera.ViewportSize or Vector2.new(400, 600)
+local w = math.clamp(ViewportSize.X - 20, 280, 400)
+local h = math.clamp(ViewportSize.Y - 80, 380, 480)
 
--- ===== PATCH: Override internal size calculation =====
--- The original CreateWindow may try to read ViewportSize and fail.
--- We'll store the original method and wrap it to force a fixed size.
-local originalCreateWindow = Fluent.CreateWindow
-local fixedSize = UDim2.fromOffset(360, 420) -- Safe default for mobile
-
-Fluent.CreateWindow = function(params)
-    -- Force the Size parameter to a fixed UDim2 if not provided or invalid
-    if not params.Size or type(params.Size) ~= "userdata" then
-        params.Size = fixedSize
-    end
-    -- Also ensure no other nil values are passed
-    return originalCreateWindow(params)
-end
-
--- ===== CREATE WINDOW WITH FIXED SIZE =====
-local Window
-local function safeCreateWindow()
-    local params = {
-        Title = "W424HUB-GAG2",
-        SubTitle = "V.3.0 | Grow a Garden 2",
-        Size = fixedSize,
-        MinimizeKey = Enum.KeyCode.RightShift,
-    }
-    local ok, result = pcall(function()
-        return Fluent:CreateWindow(params)
-    end)
-    if ok and result then
-        print("Window created with fixed size.")
-        return result
-    else
-        warn("CreateWindow failed: " .. tostring(result))
-        -- Fallback: call without Size, rely on patch
-        params.Size = nil
-        local ok2, result2 = pcall(function()
-            return Fluent:CreateWindow(params)
-        end)
-        if ok2 and result2 then
-            print("Window created without explicit size (patch applied).")
-            return result2
-        else
-            error("Failed to create Fluent window: " .. tostring(result2))
-        end
-    end
-end
-
-Window = safeCreateWindow()
-print("Window instance obtained.")
+local Window = ModernV2:Window({
+    Title = "W424HUB-GAG2",
+    Content = "V.3.0 | Grow a Garden 2",
+    Size = UDim2.fromOffset(w, h),
+    Resizable = false,
+    Keybind = "RightControl",
+    Search = true,
+    Config = {
+        ConfigFolder = "W424HUB_GAG2",
+        AutoSave = true,
+        AutoLoad = true,
+    },
+})
+print("Window created.")
 
 -- ============================================================
---  DATABASE AND CORE FUNCTIONS (unchanged)
+--  CORE DATABASE AND FUNCTIONS
 -- ============================================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -445,76 +387,102 @@ local S = {
 }
 
 -- ============================================================
---  UI BUILDING (FLUENT LITE – SAME AS BEFORE)
+--  UI BUILDING (MODERNV2)
 -- ============================================================
 print("Building UI tabs...")
 
 -- FARM TAB
-local FarmTab = Window:AddTab({ Title = "Farm", Icon = "solar/plant-bold" })
-FarmTab:AddParagraph({ Title = "Auto Farm", Content = "Panen & Tanam Otomatis" })
-FarmTab:AddToggle("AutoHarvest", { Title = "Auto Harvest", Description = "Panen otomatis tanpa jeda", Default = false, Callback = function(v) S.autoHarvest = v end })
-FarmTab:AddToggle("AutoSell", { Title = "Auto Sell", Description = "Jual semua buah otomatis", Default = false, Callback = function(v) S.autoSell = v end })
-FarmTab:AddInput("SellInterval", { Title = "Sell Interval", Description = "Jeda antar jual (detik)", Default = "60", Numeric = true, Finished = true, Callback = function(v) S.sellInterval = tonumber(v) or 60 end })
-FarmTab:AddToggle("AutoPlant", { Title = "Auto Plant", Description = "Tanam bibit dari inventory", Default = false, Callback = function(v) S.autoPlant = v end })
-FarmTab:AddInput("PlantInterval", { Title = "Plant Interval", Description = "Jeda antar tanam (detik)", Default = "10", Numeric = true, Finished = true, Callback = function(v) S.plantInterval = tonumber(v) or 10 end })
+local FarmTab = Window:Tab("Farm", "rbxassetid://16932740082")
+FarmTab:Paragraph("Auto Farm", "Panen & Tanam Otomatis")
+FarmTab:Toggle("Auto Harvest", "Panen otomatis tanpa jeda", function(v) S.autoHarvest = v end)
+FarmTab:Toggle("Auto Sell", "Jual semua buah otomatis", function(v) S.autoSell = v end)
+FarmTab:Slider("Sell Interval", "Jeda antar jual (detik)", 10, 120, 60, function(v) S.sellInterval = v end)
+FarmTab:Toggle("Auto Plant", "Tanam bibit dari inventory", function(v) S.autoPlant = v end)
+FarmTab:Slider("Plant Interval", "Jeda antar tanam (detik)", 5, 60, 10, function(v) S.plantInterval = v end)
 
 local harvestOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(harvestOptions, seed) end
-FarmTab:AddDropdown("HarvestItem", { Title = "Harvest Item", Description = "Pilih tanaman (Bisa lebih dari 1)", Values = harvestOptions, Multi = true, Default = {"All"}, Callback = function(v) Selected.harvestItem = v end })
+FarmTab:Dropdown("Harvest Item", "Pilih tanaman (Bisa lebih dari 1)", harvestOptions, function(v) Selected.harvestItem = v end, true) -- true for multi
 
 local plantOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(plantOptions, seed) end
-FarmTab:AddDropdown("PlantItem", { Title = "Plant Item", Description = "Pilih bibit (Bisa lebih dari 1)", Values = plantOptions, Multi = true, Default = {"All"}, Callback = function(v) Selected.plantItem = v end })
+FarmTab:Dropdown("Plant Item", "Pilih bibit (Bisa lebih dari 1)", plantOptions, function(v) Selected.plantItem = v end, true)
 
-FarmTab:AddButton("HarvestNow", { Title = "Harvest Now", Description = "Panen sekali sekarang", Callback = function() local count = harvestSpecific(Selected.harvestItem); Fluent:Notify({ Title = "Harvest", Content = "Panen " .. count .. " tanaman", Duration = 2 }) end })
-FarmTab:AddButton("SellNow", { Title = "Sell Now", Description = "Jual semua sekarang", Callback = function() sellAll(); Fluent:Notify({ Title = "Sell", Content = "Semua terjual!", Duration = 2 }) end })
-FarmTab:AddButton("PlantNow", { Title = "Plant Now", Description = "Tanam sekali sekarang", Callback = function() plantSpecific(Selected.plantItem); Fluent:Notify({ Title = "Plant", Content = "Menanam bibit terpilih", Duration = 2 }) end })
+FarmTab:Button("Harvest Now", function()
+    local count = harvestSpecific(Selected.harvestItem)
+    ModernV2:Notify("Harvest", "Panen " .. count .. " tanaman", 2)
+end)
+
+FarmTab:Button("Sell Now", function()
+    sellAll()
+    ModernV2:Notify("Sell", "Semua terjual!", 2)
+end)
+
+FarmTab:Button("Plant Now", function()
+    plantSpecific(Selected.plantItem)
+    ModernV2:Notify("Plant", "Menanam bibit terpilih", 2)
+end)
 
 -- SHOP TAB
-local ShopTab = Window:AddTab({ Title = "Shop", Icon = "solar/cart-bold" })
-ShopTab:AddParagraph({ Title = "Auto Shop", Content = "Beli & Buka Item" })
-ShopTab:AddToggle("AutoBuy", { Title = "Auto Buy", Description = "Beli item otomatis", Default = false, Callback = function(v) S.autoBuy = v end })
-ShopTab:AddInput("BuyInterval", { Title = "Buy Interval", Description = "Jeda antar beli (detik)", Default = "30", Numeric = true, Finished = true, Callback = function(v) S.buyInterval = tonumber(v) or 30 end })
+local ShopTab = Window:Tab("Shop", "rbxassetid://16932740082")
+ShopTab:Paragraph("Auto Shop", "Beli & Buka Item")
+ShopTab:Toggle("Auto Buy", "Beli item otomatis", function(v) S.autoBuy = v end)
+ShopTab:Slider("Buy Interval", "Jeda antar beli (detik)", 10, 120, 30, function(v) S.buyInterval = v end)
 
 local buyOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(buyOptions, seed) end for _, gear in ipairs(GEARS) do table.insert(buyOptions, gear) end for _, crate in ipairs(CRATES) do table.insert(buyOptions, crate) end
-ShopTab:AddDropdown("BuyItem", { Title = "Buy Item", Description = "Pilih item (Bisa lebih dari 1)", Values = buyOptions, Multi = true, Default = {"All"}, Callback = function(v) Selected.buyItem = v end })
+ShopTab:Dropdown("Buy Item", "Pilih item (Bisa lebih dari 1)", buyOptions, function(v) Selected.buyItem = v end, true)
 
-ShopTab:AddButton("BuyNow", { Title = "Buy Now", Description = "Beli sekarang", Callback = function() buySpecific(Selected.buyItem); Fluent:Notify({ Title = "Buy", Content = "Membeli item terpilih", Duration = 2 }) end })
-ShopTab:AddDivider()
-ShopTab:AddButton("OpenEggs", { Title = "Open All Eggs", Description = "Buka semua telur", Callback = function() openItems("Eggs"); Fluent:Notify({ Title = "Open", Content = "Semua telur dibuka!", Duration = 2 }) end })
-ShopTab:AddButton("OpenCrates", { Title = "Open All Crates", Description = "Buka semua crate", Callback = function() openItems("Crates"); Fluent:Notify({ Title = "Open", Content = "Semua crate dibuka!", Duration = 2 }) end })
-ShopTab:AddButton("OpenSeedPacks", { Title = "Open All Seed Packs", Description = "Buka semua seed pack", Callback = function() openItems("SeedPacks"); Fluent:Notify({ Title = "Open", Content = "Semua seed pack dibuka!", Duration = 2 }) end })
+ShopTab:Button("Buy Now", function()
+    buySpecific(Selected.buyItem)
+    ModernV2:Notify("Buy", "Membeli item terpilih", 2)
+end)
+
+ShopTab:Divider()
+ShopTab:Button("Open All Eggs", function()
+    openItems("Eggs")
+    ModernV2:Notify("Open", "Semua telur dibuka!", 2)
+end)
+
+ShopTab:Button("Open All Crates", function()
+    openItems("Crates")
+    ModernV2:Notify("Open", "Semua crate dibuka!", 2)
+end)
+
+ShopTab:Button("Open All Seed Packs", function()
+    openItems("SeedPacks")
+    ModernV2:Notify("Open", "Semua seed pack dibuka!", 2)
+end)
 
 -- STEAL TAB
-local StealTab = Window:AddTab({ Title = "Steal", Icon = "solar/crime-bold" })
-StealTab:AddParagraph({ Title = "Auto Steal", Content = "Curi buah saat malam" })
-StealTab:AddToggle("AutoSteal", { Title = "Auto Steal", Description = "Curi otomatis saat malam", Default = false, Callback = function(v) S.autoSteal = v end })
-StealTab:AddInput("StealInterval", { Title = "Steal Interval", Description = "Jeda antar curi (detik)", Default = "5", Numeric = true, Finished = true, Callback = function(v) S.stealInterval = tonumber(v) or 5 end })
-StealTab:AddButton("StealNow", { Title = "Steal Now", Description = "Coba curi sekali sekarang", Callback = function() performSteal(); Fluent:Notify({ Title = "Steal", Content = "Mencoba mencuri...", Duration = 2 }) end })
+local StealTab = Window:Tab("Steal", "rbxassetid://16932740082")
+StealTab:Paragraph("Auto Steal", "Curi buah saat malam")
+StealTab:Toggle("Auto Steal", "Curi otomatis saat malam", function(v) S.autoSteal = v end)
+StealTab:Slider("Steal Interval", "Jeda antar curi (detik)", 1, 30, 5, function(v) S.stealInterval = v end)
+StealTab:Button("Steal Now", function()
+    performSteal()
+    ModernV2:Notify("Steal", "Mencoba mencuri...", 2)
+end)
 
 -- MISC TAB
-local MiscTab = Window:AddTab({ Title = "Misc", Icon = "solar/settings-bold" })
-MiscTab:AddParagraph({ Title = "Lainnya", Content = "Fitur tambahan" })
-MiscTab:AddToggle("AntiAfk", { Title = "Anti-AFK", Description = "Cegah idle kick", Default = true, Callback = function(v) S.antiAfk = v end })
-MiscTab:AddToggle("Optimize", {
-    Title = "Optimize (FPS)",
-    Description = "Kurangi grafis untuk FPS tinggi",
-    Default = false,
-    Callback = function(v)
-        S.optimize = v
-        if v then
-            Lighting.GlobalShadows = false
-            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-            for _, e in ipairs(Lighting:GetDescendants()) do
-                if e:IsA("PostEffect") or e:IsA("Atmosphere") then
-                    pcall(function() e.Enabled = false end)
-                end
+local MiscTab = Window:Tab("Misc", "rbxassetid://16932740082")
+MiscTab:Paragraph("Lainnya", "Fitur tambahan")
+MiscTab:Toggle("Anti-AFK", "Cegah idle kick", function(v) S.antiAfk = v end, true) -- default true
+MiscTab:Toggle("Optimize (FPS)", "Kurangi grafis untuk FPS tinggi", function(v)
+    S.optimize = v
+    if v then
+        Lighting.GlobalShadows = false
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        for _, e in ipairs(Lighting:GetDescendants()) do
+            if e:IsA("PostEffect") or e:IsA("Atmosphere") then
+                pcall(function() e.Enabled = false end)
             end
-        else
-            Lighting.GlobalShadows = true
-            settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
         end
+    else
+        Lighting.GlobalShadows = true
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
     end
-})
-MiscTab:AddButton("Unload", { Title = "Unload Script", Description = "Hapus UI dan stop script", Callback = function() Window:Destroy() end })
+end)
+MiscTab:Button("Unload Script", function()
+    Window:Destroy()
+end)
 
 print("All UI tabs built.")
 
@@ -565,10 +533,5 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
-Fluent:Notify({
-    Title = "W424HUB-GAG2",
-    Content = "V.3.0 – Grow a Garden 2 | Press RightShift to toggle",
-    Duration = 5
-})
-
-print("✅ W424HUB-GAG2 V.3.0 (Fluent Patched) fully loaded!")
+ModernV2:Notify("W424HUB-GAG2", "V.3.0 – Grow a Garden 2 | Press RightControl to toggle", 5)
+print("✅ W424HUB-GAG2 V.3.0 (ModernV2) fully loaded!")
