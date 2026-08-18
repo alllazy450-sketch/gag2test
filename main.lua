@@ -1,8 +1,8 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (MODERNV2 UI)
+--  W424HUB-GAG2 | V.3.0 (MODERNV2 + BUBBLE + ICONS)
 --  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (MODERNV2) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (MODERNV2+ICONS) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
@@ -11,7 +11,7 @@ local ModernV2 = loadstring(game:HttpGet("https://robloxui.vercel.app/"))()
 if not ModernV2 then error("ModernV2 UI gagal dimuat") end
 print("ModernV2 UI loaded.")
 
--- ===== CREATE WINDOW (mobile-sized) =====
+-- ===== CREATE WINDOW (no config) =====
 local Camera = workspace.CurrentCamera
 local ViewportSize = Camera and Camera.ViewportSize or Vector2.new(400, 600)
 local w = math.clamp(ViewportSize.X - 20, 280, 400)
@@ -23,17 +23,93 @@ local Window = ModernV2:Window({
     Size = UDim2.fromOffset(w, h),
     Resizable = false,
     Keybind = "RightControl",
-    Search = true,
-    Config = {
-        ConfigFolder = "W424HUB_GAG2",
-        AutoSave = true,
-        AutoLoad = true,
-    },
 })
 print("Window created.")
 
 -- ============================================================
---  CORE DATABASE AND FUNCTIONS
+--  FLOATING TOGGLE BUBBLE (same as before)
+-- ============================================================
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
+local function createFloatingButton()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "W424HUB_Bubble"
+    screenGui.Parent = CoreGui
+    screenGui.ResetOnSpawn = false
+
+    local button = Instance.new("ImageButton")
+    button.Name = "ToggleButton"
+    button.Size = UDim2.new(0, 55, 0, 55)
+    button.Position = UDim2.new(1, -65, 1, -65)
+    button.Image = "rbxassetid://" -- we use background instead
+    button.BackgroundColor3 = Color3.fromRGB(70, 120, 255)
+    button.BackgroundTransparency = 0.2
+    button.BorderSizePixel = 0
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = button
+
+    local label = Instance.new("TextLabel")
+    label.Text = "W"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.TextSize = 24
+    label.Font = Enum.Font.SourceSansBold
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1,0,1,0)
+    label.Parent = button
+
+    -- Drag logic (same as before)
+    local dragging = false
+    local dragStart, buttonStart
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            buttonStart = button.Position
+        end
+    end)
+    button.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+            local delta = input.Position - dragStart
+            local newX = buttonStart.X.Offset + delta.X
+            local newY = buttonStart.Y.Offset + delta.Y
+            local maxX = screenGui.AbsoluteSize.X - 55
+            local maxY = screenGui.AbsoluteSize.Y - 55
+            newX = math.clamp(newX, 0, maxX)
+            newY = math.clamp(newY, 0, maxY)
+            button.Position = UDim2.new(0, newX, 0, newY)
+        end
+    end)
+    button.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    button.MouseButton1Click:Connect(function()
+        if Window.Toggle then
+            Window:Toggle()
+        else
+            local frame = Window.Frame or Window._Window
+            if frame then
+                frame.Visible = not frame.Visible
+            else
+                local gui = CoreGui:FindFirstChild("ModernV2") or CoreGui:FindFirstChild("W424HUB-GAG2")
+                if gui then
+                    gui.Enabled = not gui.Enabled
+                end
+            end
+        end
+    end)
+    return button
+end
+
+createFloatingButton()
+print("Floating bubble created.")
+
+-- ============================================================
+--  CORE DATABASE AND FUNCTIONS (same as before)
 -- ============================================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -387,12 +463,20 @@ local S = {
 }
 
 -- ============================================================
---  UI BUILDING (MODERNV2)
+--  UI BUILDING (ModernV2 with nice icons)
 -- ============================================================
 print("Building UI tabs...")
 
+-- Icon asset IDs (you can replace with your own)
+local ICONS = {
+    FARM = "rbxassetid://16932740082",   -- plant icon (placeholder)
+    SHOP = "rbxassetid://16932740082",   -- shopping cart (placeholder)
+    STEAL = "rbxassetid://16932740082",  -- hand/steal (placeholder)
+    MISC = "rbxassetid://16932740082",   -- gear/settings (placeholder)
+}
+
 -- FARM TAB
-local FarmTab = Window:Tab("Farm", "rbxassetid://16932740082")
+local FarmTab = Window:Tab("Farm", ICONS.FARM)
 FarmTab:Paragraph("Auto Farm", "Panen & Tanam Otomatis")
 FarmTab:Toggle("Auto Harvest", "Panen otomatis tanpa jeda", function(v) S.autoHarvest = v end)
 FarmTab:Toggle("Auto Sell", "Jual semua buah otomatis", function(v) S.autoSell = v end)
@@ -401,7 +485,7 @@ FarmTab:Toggle("Auto Plant", "Tanam bibit dari inventory", function(v) S.autoPla
 FarmTab:Slider("Plant Interval", "Jeda antar tanam (detik)", 5, 60, 10, function(v) S.plantInterval = v end)
 
 local harvestOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(harvestOptions, seed) end
-FarmTab:Dropdown("Harvest Item", "Pilih tanaman (Bisa lebih dari 1)", harvestOptions, function(v) Selected.harvestItem = v end, true) -- true for multi
+FarmTab:Dropdown("Harvest Item", "Pilih tanaman (Bisa lebih dari 1)", harvestOptions, function(v) Selected.harvestItem = v end, true)
 
 local plantOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(plantOptions, seed) end
 FarmTab:Dropdown("Plant Item", "Pilih bibit (Bisa lebih dari 1)", plantOptions, function(v) Selected.plantItem = v end, true)
@@ -422,7 +506,7 @@ FarmTab:Button("Plant Now", function()
 end)
 
 -- SHOP TAB
-local ShopTab = Window:Tab("Shop", "rbxassetid://16932740082")
+local ShopTab = Window:Tab("Shop", ICONS.SHOP)
 ShopTab:Paragraph("Auto Shop", "Beli & Buka Item")
 ShopTab:Toggle("Auto Buy", "Beli item otomatis", function(v) S.autoBuy = v end)
 ShopTab:Slider("Buy Interval", "Jeda antar beli (detik)", 10, 120, 30, function(v) S.buyInterval = v end)
@@ -452,7 +536,7 @@ ShopTab:Button("Open All Seed Packs", function()
 end)
 
 -- STEAL TAB
-local StealTab = Window:Tab("Steal", "rbxassetid://16932740082")
+local StealTab = Window:Tab("Steal", ICONS.STEAL)
 StealTab:Paragraph("Auto Steal", "Curi buah saat malam")
 StealTab:Toggle("Auto Steal", "Curi otomatis saat malam", function(v) S.autoSteal = v end)
 StealTab:Slider("Steal Interval", "Jeda antar curi (detik)", 1, 30, 5, function(v) S.stealInterval = v end)
@@ -462,9 +546,9 @@ StealTab:Button("Steal Now", function()
 end)
 
 -- MISC TAB
-local MiscTab = Window:Tab("Misc", "rbxassetid://16932740082")
+local MiscTab = Window:Tab("Misc", ICONS.MISC)
 MiscTab:Paragraph("Lainnya", "Fitur tambahan")
-MiscTab:Toggle("Anti-AFK", "Cegah idle kick", function(v) S.antiAfk = v end, true) -- default true
+MiscTab:Toggle("Anti-AFK", "Cegah idle kick", function(v) S.antiAfk = v end, true)
 MiscTab:Toggle("Optimize (FPS)", "Kurangi grafis untuk FPS tinggi", function(v)
     S.optimize = v
     if v then
@@ -482,6 +566,8 @@ MiscTab:Toggle("Optimize (FPS)", "Kurangi grafis untuk FPS tinggi", function(v)
 end)
 MiscTab:Button("Unload Script", function()
     Window:Destroy()
+    local bubble = CoreGui:FindFirstChild("W424HUB_Bubble")
+    if bubble then bubble:Destroy() end
 end)
 
 print("All UI tabs built.")
@@ -533,5 +619,5 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
-ModernV2:Notify("W424HUB-GAG2", "V.3.0 – Grow a Garden 2 | Press RightControl to toggle", 5)
-print("✅ W424HUB-GAG2 V.3.0 (ModernV2) fully loaded!")
+ModernV2:Notify("W424HUB-GAG2", "V.3.0 – Tap 'W' bubble to toggle", 5)
+print("✅ W424HUB-GAG2 V.3.0 (ModernV2 + Icons + Bubble) fully loaded!")
