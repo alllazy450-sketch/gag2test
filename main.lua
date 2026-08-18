@@ -1,91 +1,111 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (FLUENT-MODDED – FIXED SIZE)
---  Grow a Garden 2 – All-in-One (FLUENT ONLY, NO KAIRO)
+--  W424HUB-GAG2 | V.3.0 (FLUENT-ONLY – ULTIMATE MOBILE TRY)
+--  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT-ONLY FIX) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT-ULTIMATE) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- ===== SAFE FLUENT LOADER =====
+-- ===== FETCH FLUENT FROM MULTIPLE SOURCES =====
 local function fetchFluent()
     local urls = {
+        -- Primary: modded repo
         "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/FluentPro.luau",
+        "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/FluentPro.lua",
         "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/source.luau",
         "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/Fluent.lua",
-        "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/FluentPro.lua",
+        -- Release downloads (may be minified)
         "https://github.com/StyearX/Fluent-Modded/releases/download/Fluent/FluentPro",
+        -- CDN fallback
         "https://cdn.jsdelivr.net/gh/StyearX/Fluent-Modded@main/FluentPro.luau",
+        -- Original Fluent (if modded fails)
+        "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/init.lua",
     }
     local errors = {}
     for _, url in ipairs(urls) do
-        local success, content = pcall(function()
+        local ok, content = pcall(function()
             return game:HttpGet(url, true)
         end)
-        if success and content and type(content) == "string" and #content > 100 then
+        if ok and content and type(content) == "string" and #content > 100 then
             local fn, compileErr = loadstring(content)
             if fn then
                 local lib = fn()
                 if lib and type(lib) == "table" and lib.CreateWindow then
-                    print("✅ Fluent loaded successfully from:", url)
+                    print("✅ Fluent loaded from:", url)
                     return lib
                 else
-                    table.insert(errors, "UI library invalid: " .. tostring(lib))
+                    table.insert(errors, "Invalid library from " .. url)
                 end
             else
                 table.insert(errors, "Compile error: " .. tostring(compileErr))
             end
         else
-            table.insert(errors, "Fetch failed: " .. tostring(success) .. " (" .. tostring(content) .. ")")
+            table.insert(errors, "Fetch failed: " .. tostring(ok) .. " (" .. tostring(content) .. ")")
         end
-        task.wait(0.3)
+        task.wait(0.2)
     end
     error("All Fluent load attempts failed:\n" .. table.concat(errors, "\n"))
 end
 
 local Fluent = fetchFluent()
-print("Fluent object obtained. Building UI...")
+print("Fluent obtained. Building UI...")
 
--- ===== CREATE WINDOW WITH FIXED SIZE (TABLE, NOT UDIM2) =====
-local ScreenSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
-local w = (ScreenSize and math.clamp(ScreenSize.X - 20, 280, 400)) or 360
-local h = (ScreenSize and math.clamp(ScreenSize.Y - 80, 380, 480)) or 420
-print("Using window size: " .. w .. "x" .. h)
+-- ===== GET SCREEN SIZE (MOBILE SAFE) =====
+local Camera = workspace.CurrentCamera
+local ViewportSize = Camera and Camera.ViewportSize or Vector2.new(400, 600)
+local w = math.clamp(ViewportSize.X - 20, 280, 400)
+local h = math.clamp(ViewportSize.Y - 80, 380, 480)
+print("Target window size: " .. w .. "x" .. h)
 
+-- ===== ATTEMPT WINDOW CREATION WITH VARIOUS SIZE FORMATS =====
 local Window
-local function safeCreateWindow()
-    -- Attempt 1: Provide Size as a table with numeric X and Y
+local function tryCreateWindow(sizeParam)
     local params = {
         Title = "W424HUB-GAG2",
         SubTitle = "V.3.0 | Grow a Garden 2",
-        Size = { X = w, Y = h },
         MinimizeKey = Enum.KeyCode.RightShift,
-        -- Avoid Acrylic to prevent potential rendering bugs
     }
+    if sizeParam ~= nil then
+        params.Size = sizeParam
+    end
     local ok, result = pcall(function()
         return Fluent:CreateWindow(params)
     end)
     if ok and result then
-        print("Window created with Size table.")
         return result
     end
-    warn("Attempt 1 (Size table) failed: " .. tostring(result))
-
-    -- Attempt 2: Omit Size entirely, let library use default
-    params.Size = nil
-    local ok2, result2 = pcall(function()
-        return Fluent:CreateWindow(params)
-    end)
-    if ok2 and result2 then
-        print("Window created with default size.")
-        return result2
-    end
-    error("Failed to create Fluent window: " .. tostring(result2))
+    return nil, tostring(result)
 end
 
-Window = safeCreateWindow()
+local sizeFormats = {
+    { name = "UDim2 (fromOffset)", value = UDim2.fromOffset(w, h) },
+    { name = "UDim2 (new)", value = UDim2.new(0, w, 0, h) },
+    { name = "Vector2", value = Vector2.new(w, h) },
+    { name = "Table {X,Y}", value = { X = w, Y = h } },
+    { name = "Table {Width,Height}", value = { Width = w, Height = h } },
+    { name = "No Size (default)", value = nil },
+}
+
+local lastError
+for _, fmt in ipairs(sizeFormats) do
+    local win, err = tryCreateWindow(fmt.value)
+    if win then
+        Window = win
+        print("✅ Window created with size format:", fmt.name)
+        break
+    else
+        lastError = err
+        warn("Attempt with " .. fmt.name .. " failed: " .. err)
+    end
+    task.wait(0.1)
+end
+
+if not Window then
+    error("CRITICAL: Failed to create Fluent window with any size format.\nLast error: " .. tostring(lastError) .. "\nFluent-modded is not compatible with your mobile client. Use Kairo UI instead.")
+end
 
 -- ============================================================
---  DATABASE AND CORE FUNCTIONS (unchanged)
+--  CORE DATABASE AND FUNCTIONS (UNCHANGED, FULL)
 -- ============================================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -557,4 +577,4 @@ Fluent:Notify({
     Duration = 5
 })
 
-print("✅ W424HUB-GAG2 V.3.0 (Fluent-only, fixed size) fully loaded!")
+print("✅ W424HUB-GAG2 V.3.0 (Fluent ultimate) fully loaded!")
