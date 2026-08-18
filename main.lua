@@ -1,45 +1,40 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (WINDUI + CUSTOM THEME + BUBBLE)
+--  W424HUB-GAG2 | V.3.0 (KAIRO UI – CONFIG DISABLED)
 --  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (WINDUI) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (KAIRO) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- ===== LOAD WINDUI =====
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
-if not WindUI then error("WindUI gagal dimuat") end
-print("WindUI loaded.")
+-- ===== LOAD KAIRO UI =====
+local Kairo = loadstring(game:HttpGet("https://raw.githubusercontent.com/Itzzavi335/Kairo-Ui-Library/main/source.luau"))()
+if not Kairo then error("Kairo UI gagal dimuat") end
+print("Kairo UI loaded.")
 
--- ===== CREATE WINDOW WITH CUSTOM THEME =====
+-- ===== CREATE WINDOW (config disabled, choose your theme) =====
 local Camera = workspace.CurrentCamera
 local ViewportSize = Camera and Camera.ViewportSize or Vector2.new(400, 600)
 local w = math.clamp(ViewportSize.X - 20, 280, 400)
 local h = math.clamp(ViewportSize.Y - 80, 380, 480)
 
--- Customize these colors to your liking
-local MyTheme = {
-    Accent = Color3.fromRGB(120, 80, 255),   -- Purple-blue accent
-    Background = Color3.fromRGB(18, 18, 28), -- Dark background
-    Text = Color3.fromRGB(255, 255, 255),    -- White text
-    -- You can also add: SubText, Border, etc.
-}
-
-local Window = WindUI:CreateWindow({
+local Window = Kairo:CreateWindow({
     Title = "W424HUB-GAG2",
-    Author = "V.3.0 | Grow a Garden 2",
-    Folder = "W424HUB_WindUI",
-    Icon = "solar:folder-2-bold-duotone",
+    SubTitle = "V.3.0 | Grow a Garden 2",
+    Theme = "Midnight",   -- Change to "Crimson", "Forest", "Sakura", etc.
     Size = UDim2.fromOffset(w, h),
-    Theme = MyTheme,   -- Apply custom theme
-    OpenButton = {
-        Enabled = false, -- disable default button (we use custom bubble)
-    },
+    Center = true,
+    Draggable = true,
+    Resize = false,
+    Badges = {"GAG2", "V.3.0"},
+    MinimizeKey = Enum.KeyCode.RightShift,
+    MinimizeButton = true,
+    MinimizeButton_Image = "rbxassetid://116850882259653",
+    Config = { Enabled = false },   -- Disabled to avoid writefile errors
 })
-print("Window created with custom theme.")
+print("Window created with Kairo UI.")
 
 -- ============================================================
---  CUSTOM FLOATING BUBBLE
+--  FLOATING TOGGLE BUBBLE (since Kairo's minimize key might not work on mobile)
 -- ============================================================
 local CoreGui = game:GetService("CoreGui")
 
@@ -53,7 +48,7 @@ local function createBubble()
     local button = Instance.new("ImageButton")
     button.Size = UDim2.new(0, 55, 0, 55)
     button.Position = UDim2.new(1, -65, 1, -65)
-    button.BackgroundColor3 = MyTheme.Accent or Color3.fromRGB(120, 80, 255)
+    button.BackgroundColor3 = Color3.fromRGB(120, 80, 255) -- match accent
     button.BackgroundTransparency = 0.15
     button.BorderSizePixel = 0
     button.Image = "rbxassetid://"
@@ -71,16 +66,6 @@ local function createBubble()
     label.BackgroundTransparency = 1
     label.Size = UDim2.new(1,0,1,0)
     label.Parent = button
-
-    local glow = Instance.new("ImageLabel")
-    glow.Size = UDim2.new(1.2, 0, 1.2, 0)
-    glow.Position = UDim2.new(-0.1, 0, -0.1, 0)
-    glow.BackgroundTransparency = 1
-    glow.Image = "rbxassetid://"
-    glow.ImageColor3 = MyTheme.Accent or Color3.fromRGB(120, 80, 255)
-    glow.ImageTransparency = 0.8
-    glow.ZIndex = 0
-    glow.Parent = button
 
     -- Drag logic
     local dragging = false
@@ -111,17 +96,28 @@ local function createBubble()
     end)
 
     button.MouseButton1Click:Connect(function()
-        Window:Toggle()
+        if Window.Toggle then
+            Window:Toggle()
+        else
+            local frame = Window.Frame or Window._Window
+            if frame then
+                frame.Visible = not frame.Visible
+            else
+                local gui = CoreGui:FindFirstChild("Kairo") or CoreGui:FindFirstChild("W424HUB-GAG2")
+                if gui then
+                    gui.Enabled = not gui.Enabled
+                end
+            end
+        end
     end)
 
     button.Parent = screenGui
 end
-
 createBubble()
-print("Custom bubble created.")
+print("Bubble created.")
 
 -- ============================================================
---  CORE DATABASE AND FUNCTIONS
+--  CORE DATABASE AND FUNCTIONS (same as before)
 -- ============================================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -475,211 +471,115 @@ local S = {
 }
 
 -- ============================================================
---  UI BUILDING (WINDUI)
+--  UI BUILDING (KAIRO)
 -- ============================================================
 print("Building UI tabs...")
 
--- FARM TAB
-local FarmTab = Window:Tab({ Title = "Farm", Icon = "solar:plant-bold" })
-FarmTab:Paragraph({ Title = "Auto Farm", Content = "Panen & Tanam Otomatis" })
-FarmTab:Toggle({
-    Title = "Auto Harvest",
-    Description = "Panen otomatis tanpa jeda",
-    Default = false,
-    Callback = function(v) S.autoHarvest = v end,
-})
-FarmTab:Toggle({
-    Title = "Auto Sell",
-    Description = "Jual semua buah otomatis",
-    Default = false,
-    Callback = function(v) S.autoSell = v end,
-})
-FarmTab:Slider({
-    Title = "Sell Interval",
-    Description = "Jeda antar jual (detik)",
-    Min = 10,
-    Max = 120,
-    Default = 60,
-    Callback = function(v) S.sellInterval = v end,
-})
-FarmTab:Toggle({
-    Title = "Auto Plant",
-    Description = "Tanam bibit dari inventory",
-    Default = false,
-    Callback = function(v) S.autoPlant = v end,
-})
-FarmTab:Slider({
-    Title = "Plant Interval",
-    Description = "Jeda antar tanam (detik)",
-    Min = 5,
-    Max = 60,
-    Default = 10,
-    Callback = function(v) S.plantInterval = v end,
-})
+-- ===== TAB: FARM =====
+local FarmTab = Window:CreateTab("Farm", "rbxassetid://16932740082")
+
+Window:AddParagraph(FarmTab, "Auto Farm", "Panen & Tanam Otomatis")
+
+Window:AddToggle(FarmTab, "Auto Harvest", "Panen otomatis tanpa jeda", false, function(v) S.autoHarvest = v end, "AutoHarvest")
+Window:AddToggle(FarmTab, "Auto Sell", "Jual semua buah otomatis", false, function(v) S.autoSell = v end, "AutoSell")
+Window:AddInput(FarmTab, "Sell Interval", "Jeda antar jual (detik)", "60", function(v) S.sellInterval = tonumber(v) or 60 end, "SellInterval")
+Window:AddToggle(FarmTab, "Auto Plant", "Tanam bibit dari inventory", false, function(v) S.autoPlant = v end, "AutoPlant")
+Window:AddInput(FarmTab, "Plant Interval", "Jeda antar tanam (detik)", "10", function(v) S.plantInterval = tonumber(v) or 10 end, "PlantInterval")
 
 local harvestOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(harvestOptions, seed) end
-FarmTab:Dropdown({
-    Title = "Harvest Item",
-    Description = "Pilih tanaman (Bisa lebih dari 1)",
-    Options = harvestOptions,
-    Multiselect = true,
-    Default = {"All"},
-    Callback = function(v) Selected.harvestItem = v end,
-})
+Window:AddDropdown(FarmTab, "Harvest Item", "Pilih tanaman (Bisa lebih dari 1)", harvestOptions, true, {}, function(v) Selected.harvestItem = v end, "HarvestItem")
 
 local plantOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(plantOptions, seed) end
-FarmTab:Dropdown({
-    Title = "Plant Item",
-    Description = "Pilih bibit (Bisa lebih dari 1)",
-    Options = plantOptions,
-    Multiselect = true,
-    Default = {"All"},
-    Callback = function(v) Selected.plantItem = v end,
-})
+Window:AddDropdown(FarmTab, "Plant Item", "Pilih bibit (Bisa lebih dari 1)", plantOptions, true, {}, function(v) Selected.plantItem = v end, "PlantItem")
 
-FarmTab:Button({
-    Title = "Harvest Now",
-    Callback = function()
-        local count = harvestSpecific(Selected.harvestItem)
-        WindUI:Notify({ Title = "Harvest", Content = "Panen " .. count .. " tanaman", Duration = 2 })
-    end,
-})
-FarmTab:Button({
-    Title = "Sell Now",
-    Callback = function()
-        sellAll()
-        WindUI:Notify({ Title = "Sell", Content = "Semua terjual!", Duration = 2 })
-    end,
-})
-FarmTab:Button({
-    Title = "Plant Now",
-    Callback = function()
-        plantSpecific(Selected.plantItem)
-        WindUI:Notify({ Title = "Plant", Content = "Menanam bibit terpilih", Duration = 2 })
-    end,
-})
+Window:AddButton(FarmTab, "Harvest Now", "Panen sekali sekarang", "rbxassetid://16932740082", function()
+    local count = harvestSpecific(Selected.harvestItem)
+    Window:Notify({Title = "Harvest", Description = "Panen " .. count .. " tanaman", Content = "Selesai", Color = Color3.fromRGB(0,200,100), Delay = 2})
+end)
 
--- SHOP TAB
-local ShopTab = Window:Tab({ Title = "Shop", Icon = "solar:cart-bold" })
-ShopTab:Paragraph({ Title = "Auto Shop", Content = "Beli & Buka Item" })
-ShopTab:Toggle({
-    Title = "Auto Buy",
-    Description = "Beli item otomatis",
-    Default = false,
-    Callback = function(v) S.autoBuy = v end,
-})
-ShopTab:Slider({
-    Title = "Buy Interval",
-    Description = "Jeda antar beli (detik)",
-    Min = 10,
-    Max = 120,
-    Default = 30,
-    Callback = function(v) S.buyInterval = v end,
-})
+Window:AddButton(FarmTab, "Sell Now", "Jual semua sekarang", "rbxassetid://16932740082", function()
+    sellAll()
+    Window:Notify({Title = "Sell", Description = "Semua terjual!", Content = "", Color = Color3.fromRGB(255,200,0), Delay = 2})
+end)
+
+Window:AddButton(FarmTab, "Plant Now", "Tanam sekali sekarang", "rbxassetid://16932740082", function()
+    plantSpecific(Selected.plantItem)
+    Window:Notify({Title = "Plant", Description = "Menanam bibit terpilih", Content = "", Color = Color3.fromRGB(0,200,50), Delay = 2})
+end)
+
+-- ===== TAB: SHOP =====
+local ShopTab = Window:CreateTab("Shop", "rbxassetid://16932740082")
+
+Window:AddParagraph(ShopTab, "Auto Shop", "Beli & Buka Item")
+
+Window:AddToggle(ShopTab, "Auto Buy", "Beli item otomatis", false, function(v) S.autoBuy = v end, "AutoBuy")
+Window:AddInput(ShopTab, "Buy Interval", "Jeda antar beli (detik)", "30", function(v) S.buyInterval = tonumber(v) or 30 end, "BuyInterval")
 
 local buyOptions = {"All"} for _, seed in ipairs(SEEDS) do table.insert(buyOptions, seed) end for _, gear in ipairs(GEARS) do table.insert(buyOptions, gear) end for _, crate in ipairs(CRATES) do table.insert(buyOptions, crate) end
-ShopTab:Dropdown({
-    Title = "Buy Item",
-    Description = "Pilih item (Bisa lebih dari 1)",
-    Options = buyOptions,
-    Multiselect = true,
-    Default = {"All"},
-    Callback = function(v) Selected.buyItem = v end,
-})
+Window:AddDropdown(ShopTab, "Buy Item", "Pilih item (Bisa lebih dari 1)", buyOptions, true, {}, function(v) Selected.buyItem = v end, "BuyItem")
 
-ShopTab:Button({
-    Title = "Buy Now",
-    Callback = function()
-        buySpecific(Selected.buyItem)
-        WindUI:Notify({ Title = "Buy", Content = "Membeli item terpilih", Duration = 2 })
-    end,
-})
+Window:AddButton(ShopTab, "Buy Now", "Beli sekarang", "rbxassetid://16932740082", function()
+    buySpecific(Selected.buyItem)
+    Window:Notify({Title = "Buy", Description = "Membeli item terpilih", Content = "", Color = Color3.fromRGB(0,150,255), Delay = 2})
+end)
 
-ShopTab:Divider()
-ShopTab:Button({
-    Title = "Open All Eggs",
-    Callback = function()
-        openItems("Eggs")
-        WindUI:Notify({ Title = "Open", Content = "Semua telur dibuka!", Duration = 2 })
-    end,
-})
-ShopTab:Button({
-    Title = "Open All Crates",
-    Callback = function()
-        openItems("Crates")
-        WindUI:Notify({ Title = "Open", Content = "Semua crate dibuka!", Duration = 2 })
-    end,
-})
-ShopTab:Button({
-    Title = "Open All Seed Packs",
-    Callback = function()
-        openItems("SeedPacks")
-        WindUI:Notify({ Title = "Open", Content = "Semua seed pack dibuka!", Duration = 2 })
-    end,
-})
+Window:AddDivider(ShopTab, "")
 
--- STEAL TAB
-local StealTab = Window:Tab({ Title = "Steal", Icon = "solar:crime-bold" })
-StealTab:Paragraph({ Title = "Auto Steal", Content = "Curi buah saat malam" })
-StealTab:Toggle({
-    Title = "Auto Steal",
-    Description = "Curi otomatis saat malam",
-    Default = false,
-    Callback = function(v) S.autoSteal = v end,
-})
-StealTab:Slider({
-    Title = "Steal Interval",
-    Description = "Jeda antar curi (detik)",
-    Min = 1,
-    Max = 30,
-    Default = 5,
-    Callback = function(v) S.stealInterval = v end,
-})
-StealTab:Button({
-    Title = "Steal Now",
-    Callback = function()
-        performSteal()
-        WindUI:Notify({ Title = "Steal", Content = "Mencoba mencuri...", Duration = 2 })
-    end,
-})
+Window:AddButton(ShopTab, "Open All Eggs", "Buka semua telur", "rbxassetid://16932740082", function()
+    openItems("Eggs")
+    Window:Notify({Title = "Open", Description = "Semua telur dibuka!", Content = "", Color = Color3.fromRGB(255,150,0), Delay = 2})
+end)
 
--- MISC TAB
-local MiscTab = Window:Tab({ Title = "Misc", Icon = "solar:settings-bold" })
-MiscTab:Paragraph({ Title = "Lainnya", Content = "Fitur tambahan" })
-MiscTab:Toggle({
-    Title = "Anti-AFK",
-    Description = "Cegah idle kick",
-    Default = true,
-    Callback = function(v) S.antiAfk = v end,
-})
-MiscTab:Toggle({
-    Title = "Optimize (FPS)",
-    Description = "Kurangi grafis untuk FPS tinggi",
-    Default = false,
-    Callback = function(v)
-        S.optimize = v
-        if v then
-            Lighting.GlobalShadows = false
-            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-            for _, e in ipairs(Lighting:GetDescendants()) do
-                if e:IsA("PostEffect") or e:IsA("Atmosphere") then
-                    pcall(function() e.Enabled = false end)
-                end
+Window:AddButton(ShopTab, "Open All Crates", "Buka semua crate", "rbxassetid://16932740082", function()
+    openItems("Crates")
+    Window:Notify({Title = "Open", Description = "Semua crate dibuka!", Content = "", Color = Color3.fromRGB(255,150,0), Delay = 2})
+end)
+
+Window:AddButton(ShopTab, "Open All Seed Packs", "Buka semua seed pack", "rbxassetid://16932740082", function()
+    openItems("SeedPacks")
+    Window:Notify({Title = "Open", Description = "Semua seed pack dibuka!", Content = "", Color = Color3.fromRGB(255,150,0), Delay = 2})
+end)
+
+-- ===== TAB: STEAL =====
+local StealTab = Window:CreateTab("Steal", "rbxassetid://16932740082")
+
+Window:AddParagraph(StealTab, "Auto Steal", "Curi buah saat malam")
+
+Window:AddToggle(StealTab, "Auto Steal", "Curi otomatis saat malam", false, function(v) S.autoSteal = v end, "AutoSteal")
+Window:AddInput(StealTab, "Steal Interval", "Jeda antar curi (detik)", "5", function(v) S.stealInterval = tonumber(v) or 5 end, "StealInterval")
+
+Window:AddButton(StealTab, "Steal Now", "Coba curi sekali sekarang", "rbxassetid://16932740082", function()
+    performSteal()
+    Window:Notify({Title = "Steal", Description = "Mencoba mencuri...", Content = "", Color = Color3.fromRGB(150,100,255), Delay = 2})
+end)
+
+-- ===== TAB: MISC =====
+local MiscTab = Window:CreateTab("Misc", "rbxassetid://16932740082")
+
+Window:AddParagraph(MiscTab, "Lainnya", "Fitur tambahan")
+
+Window:AddToggle(MiscTab, "Anti-AFK", "Cegah idle kick", true, function(v) S.antiAfk = v end, "AntiAfk")
+Window:AddToggle(MiscTab, "Optimize (FPS)", "Kurangi grafis untuk FPS tinggi", false, function(v)
+    S.optimize = v
+    if v then
+        Lighting.GlobalShadows = false
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        for _, e in ipairs(Lighting:GetDescendants()) do
+            if e:IsA("PostEffect") or e:IsA("Atmosphere") then
+                pcall(function() e.Enabled = false end)
             end
-        else
-            Lighting.GlobalShadows = true
-            settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
         end
-    end,
-})
-MiscTab:Button({
-    Title = "Unload Script",
-    Callback = function()
-        Window:Destroy()
-        local bubble = CoreGui:FindFirstChild("W424HUB_Bubble")
-        if bubble then bubble:Destroy() end
-    end,
-})
+    else
+        Lighting.GlobalShadows = true
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+    end
+end, "Optimize")
+
+Window:AddButton(MiscTab, "Unload Script", "Hapus UI dan stop script", "rbxassetid://16932740082", function()
+    Window:Destroy()
+    local bubble = CoreGui:FindFirstChild("W424HUB_Bubble")
+    if bubble then bubble:Destroy() end
+end)
 
 print("All UI tabs built.")
 
@@ -730,5 +630,12 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
-WindUI:Notify({ Title = "W424HUB-GAG2", Content = "V.3.0 – Tap 'W' bubble to toggle", Duration = 5 })
-print("✅ W424HUB-GAG2 V.3.0 (WindUI + custom theme + bubble) fully loaded!")
+Window:Notify({
+    Title = "W424HUB-GAG2",
+    Description = "V.3.0 – Grow a Garden 2",
+    Content = "Tap 'W' bubble to toggle",
+    Color = Color3.fromRGB(30, 30, 60),
+    Delay = 5
+})
+
+print("✅ W424HUB-GAG2 V.3.0 (Kairo UI) fully loaded!")
