@@ -1,12 +1,47 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (MODERNV2 – CONFIG DISABLED)
+--  W424HUB-GAG2 | V.3.0 (MODERNV2 – BLOCK WRITES)
 --  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (MODERNV2 NO CONFIG) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (BLOCK WRITES) ===")
 
-if not game:IsLoaded() then game.Loaded:Wait() end
+-- ===== BLOCK ALL WRITES TO ModernV2Configs =====
+local oldWrite = writefile
+writefile = function(path, content)
+    if path and string.find(path, "ModernV2Configs") then
+        print("Blocked write to:", path)
+        return
+    end
+    if oldWrite then
+        return oldWrite(path, content)
+    end
+end
+
+-- Also block readfile/listfiles if they exist to avoid other errors
+local oldRead = readfile
+readfile = function(path)
+    if path and string.find(path, "ModernV2Configs") then
+        return "" -- pretend file doesn't exist
+    end
+    if oldRead then
+        return oldRead(path)
+    end
+    return nil
+end
+
+local oldList = listfiles
+listfiles = function(folder)
+    if folder and string.find(folder, "ModernV2Configs") then
+        return {} -- empty list
+    end
+    if oldList then
+        return oldList(folder)
+    end
+    return {}
+end
 
 -- ===== LOAD MODERNV2 UI =====
+if not game:IsLoaded() then game.Loaded:Wait() end
+
 local ModernV2 = loadstring(game:HttpGet("https://robloxui.vercel.app/"))()
 if not ModernV2 then error("ModernV2 UI gagal dimuat") end
 print("ModernV2 UI loaded.")
@@ -23,10 +58,7 @@ local Window = ModernV2:Window({
     Size = UDim2.fromOffset(w, h),
     Resizable = false,
     Keybind = "RightControl",
-    -- DISABLE CONFIG: no file writes, no errors
-    Config = {
-        Enabled = false,
-    },
+    Config = { Enabled = false }, -- still set to false, but override handles everything
 })
 print("Window created.")
 
@@ -621,4 +653,4 @@ LocalPlayer.Idled:Connect(function()
 end)
 
 ModernV2:Notify("W424HUB-GAG2", "V.3.0 – Tap 'W' bubble to toggle", 5)
-print("✅ W424HUB-GAG2 V.3.0 (ModernV2 – config disabled) fully loaded!")
+print("✅ W424HUB-GAG2 V.3.0 (ModernV2 – block writes) fully loaded!")
