@@ -1,29 +1,25 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (FLUENT-MODDED – ONLY FLUENT)
---  Grow a Garden 2 – All-in-One
+--  W424HUB-GAG2 | V.3.0 (FLUENT-MODDED – FIXED SIZE)
+--  Grow a Garden 2 – All-in-One (FLUENT ONLY, NO KAIRO)
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT-ONLY) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT-ONLY FIX) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- ===== SAFE FLUENT LOADER (NO FALLBACK TO KAIRO) =====
+-- ===== SAFE FLUENT LOADER =====
 local function fetchFluent()
     local urls = {
-        -- Try various likely raw URLs for Fluent-modded
         "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/FluentPro.luau",
         "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/source.luau",
         "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/Fluent.lua",
         "https://raw.githubusercontent.com/StyearX/Fluent-Modded/main/FluentPro.lua",
-        -- Fallback to release download (may not be raw, but try)
         "https://github.com/StyearX/Fluent-Modded/releases/download/Fluent/FluentPro",
-        -- Alternative using gitcdn
         "https://cdn.jsdelivr.net/gh/StyearX/Fluent-Modded@main/FluentPro.luau",
     }
-
     local errors = {}
     for _, url in ipairs(urls) do
         local success, content = pcall(function()
-            return game:HttpGet(url, true) -- cache
+            return game:HttpGet(url, true)
         end)
         if success and content and type(content) == "string" and #content > 100 then
             local fn, compileErr = loadstring(content)
@@ -33,13 +29,13 @@ local function fetchFluent()
                     print("✅ Fluent loaded successfully from:", url)
                     return lib
                 else
-                    table.insert(errors, "UI returned invalid table: " .. tostring(lib))
+                    table.insert(errors, "UI library invalid: " .. tostring(lib))
                 end
             else
-                table.insert(errors, "Compilation failed: " .. tostring(compileErr))
+                table.insert(errors, "Compile error: " .. tostring(compileErr))
             end
         else
-            table.insert(errors, "Fetch failed: " .. tostring(success) .. " " .. tostring(content))
+            table.insert(errors, "Fetch failed: " .. tostring(success) .. " (" .. tostring(content) .. ")")
         end
         task.wait(0.3)
     end
@@ -49,40 +45,44 @@ end
 local Fluent = fetchFluent()
 print("Fluent object obtained. Building UI...")
 
--- ===== CREATE WINDOW WITH SAFE ATTEMPTS =====
+-- ===== CREATE WINDOW WITH FIXED SIZE (TABLE, NOT UDIM2) =====
+local ScreenSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
+local w = (ScreenSize and math.clamp(ScreenSize.X - 20, 280, 400)) or 360
+local h = (ScreenSize and math.clamp(ScreenSize.Y - 80, 380, 480)) or 420
+print("Using window size: " .. w .. "x" .. h)
+
 local Window
 local function safeCreateWindow()
+    -- Attempt 1: Provide Size as a table with numeric X and Y
     local params = {
         Title = "W424HUB-GAG2",
         SubTitle = "V.3.0 | Grow a Garden 2",
+        Size = { X = w, Y = h },
         MinimizeKey = Enum.KeyCode.RightShift,
+        -- Avoid Acrylic to prevent potential rendering bugs
     }
     local ok, result = pcall(function()
         return Fluent:CreateWindow(params)
     end)
     if ok and result then
+        print("Window created with Size table.")
         return result
     end
-    -- Retry with explicit size
-    local ScreenSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
-    local w = (ScreenSize and math.clamp(ScreenSize.X - 20, 280, 400)) or 360
-    local h = (ScreenSize and math.clamp(ScreenSize.Y - 80, 380, 480)) or 420
+    warn("Attempt 1 (Size table) failed: " .. tostring(result))
+
+    -- Attempt 2: Omit Size entirely, let library use default
+    params.Size = nil
     local ok2, result2 = pcall(function()
-        return Fluent:CreateWindow({
-            Title = "W424HUB-GAG2",
-            SubTitle = "V.3.0 | Grow a Garden 2",
-            Size = UDim2.fromOffset(w, h),
-            MinimizeKey = Enum.KeyCode.RightShift,
-        })
+        return Fluent:CreateWindow(params)
     end)
     if ok2 and result2 then
+        print("Window created with default size.")
         return result2
     end
-    error("Failed to create Fluent window: " .. tostring(result or result2))
+    error("Failed to create Fluent window: " .. tostring(result2))
 end
 
 Window = safeCreateWindow()
-print("Window created.")
 
 -- ============================================================
 --  DATABASE AND CORE FUNCTIONS (unchanged)
@@ -557,4 +557,4 @@ Fluent:Notify({
     Duration = 5
 })
 
-print("✅ W424HUB-GAG2 V.3.0 (Fluent-only) fully loaded!")
+print("✅ W424HUB-GAG2 V.3.0 (Fluent-only, fixed size) fully loaded!")
