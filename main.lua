@@ -1,8 +1,8 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (FLUENT-MODDED UI - FIXED)
+--  W424HUB-GAG2 | V.3.0 (FLUENT-MODDED UI - FINAL FIX)
 --  Grow a Garden 2 – All-in-One
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT FIXED) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT FINAL FIX) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
@@ -20,37 +20,46 @@ local VirtualUser = game:GetService("VirtualUser")
 -- ===== LOAD FLUENT-MODDED UI =====
 local Fluent = loadstring(game:HttpGet("https://github.com/StyearX/Fluent-Modded/releases/download/Fluent/FluentPro"))()
 if not Fluent then error("Fluent-modded UI gagal dimuat") end
+print("Fluent loaded successfully.")
 
--- ===== UI SIZE (MOBILE ADAPTIVE) – WITH SAFE FALLBACK =====
-local ScreenSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
-local MobileWidth = (ScreenSize and math.clamp(ScreenSize.X - 20, 280, 400)) or 360
-local MobileHeight = (ScreenSize and math.clamp(ScreenSize.Y - 80, 380, 480)) or 420
-
--- ===== CREATE WINDOW WITH ERROR HANDLING =====
+-- ===== CREATE WINDOW WITH SAFE FALLBACK =====
 local Window
-local success, err = pcall(function()
-    Window = Fluent:CreateWindow({
-        Title = "W424HUB-GAG2",
-        SubTitle = "V.3.0 | Grow a Garden 2",
-        -- Use a table for Size to avoid UDim2 arithmetic bugs in the library
-        Size = { X = MobileWidth, Y = MobileHeight },
-        Acrylic = true,
-        Theme = "AMOLED",
-        MinimizeKey = Enum.KeyCode.RightShift,
-    })
-end)
-
-if not success then
-    warn("Fluent CreateWindow failed: " .. tostring(err) .. ". Retrying with default size.")
-    Window = Fluent:CreateWindow({
-        Title = "W424HUB-GAG2",
-        SubTitle = "V.3.0 | Grow a Garden 2",
-        -- Omit Size to use library default
-        Acrylic = true,
-        Theme = "AMOLED",
-        MinimizeKey = Enum.KeyCode.RightShift,
-    })
+local function safeCreateWindow()
+    -- Try with minimal options first (no Size, no Acrylic to avoid library bugs)
+    local success, result = pcall(function()
+        return Fluent:CreateWindow({
+            Title = "W424HUB-GAG2",
+            SubTitle = "V.3.0 | Grow a Garden 2",
+            MinimizeKey = Enum.KeyCode.RightShift,
+        })
+    end)
+    if success and result then
+        print("Window created with default size.")
+        return result
+    end
+    warn("Failed to create window with default options: " .. tostring(result))
+    -- Fallback: try with explicit UDim2 using safe numbers
+    local ScreenSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
+    local w = (ScreenSize and math.clamp(ScreenSize.X - 20, 280, 400)) or 360
+    local h = (ScreenSize and math.clamp(ScreenSize.Y - 80, 380, 480)) or 420
+    local size = UDim2.fromOffset(w, h)
+    local success2, result2 = pcall(function()
+        return Fluent:CreateWindow({
+            Title = "W424HUB-GAG2",
+            SubTitle = "V.3.0 | Grow a Garden 2",
+            Size = size,
+            MinimizeKey = Enum.KeyCode.RightShift,
+        })
+    end)
+    if success2 and result2 then
+        print("Window created with size: " .. w .. "x" .. h)
+        return result2
+    end
+    error("All attempts to create Fluent window failed: " .. tostring(result2))
 end
+
+Window = safeCreateWindow()
+print("Window instance obtained.")
 
 -- ============================================================
 --  ITEM DATABASE
@@ -440,8 +449,9 @@ local S = {
 }
 
 -- ============================================================
---  UI – FLUENT-MODDED (FULLY CONVERTED WITH FIXES)
+--  UI – FLUENT-MODDED (ALL TABS)
 -- ============================================================
+print("Building UI tabs...")
 
 -- ===== TAB: FARM =====
 local FarmTab = Window:AddTab({ Title = "Farm", Icon = "solar/plant-bold" })
@@ -685,6 +695,8 @@ MiscTab:AddButton("Unload", {
     end
 })
 
+print("All UI tabs built successfully.")
+
 -- ============================================================
 --  MAIN LOOPS
 -- ============================================================
@@ -749,4 +761,4 @@ Fluent:Notify({
     Duration = 5
 })
 
-print("✅ W424HUB-GAG2 V.3.0 (Fluent UI - FIXED) loaded!")
+print("✅ W424HUB-GAG2 V.3.0 (Fluent UI) fully loaded and running!")
