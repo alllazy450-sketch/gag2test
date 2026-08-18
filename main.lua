@@ -1,32 +1,97 @@
 -- ============================================================
---  W424HUB-GAG2 | V.3.0 (FLUENT LITE – ORIGINAL)
---  Grow a Garden 2 – All-in-One (Mobile Optimized)
+--  W424HUB-GAG2 | V.3.0 (FLUENT LITE – PATCHED)
+--  Grow a Garden 2 – Mobile-Optimized
 -- ============================================================
-print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT LITE) ===")
+print("=== LOADING W424HUB-GAG2 V.3.0 (FLUENT PATCHED) ===")
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- ===== LOAD FLUENT LITE (ORIGINAL) =====
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-if not Fluent then error("Fluent Lite failed to load.") end
-print("Fluent Lite loaded.")
+-- ===== SAFE FLUENT LOADER WITH MULTIPLE SOURCES =====
+local Fluent
+local function fetchFluent()
+    local urls = {
+        "https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua",
+        "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/init.lua",
+        "https://raw.githubusercontent.com/dawid-scripts/Fluent/master/source.lua",
+    }
+    local errors = {}
+    for _, url in ipairs(urls) do
+        local ok, content = pcall(function() return game:HttpGet(url, true) end)
+        if ok and content and type(content) == "string" and #content > 100 then
+            local fn, compileErr = loadstring(content)
+            if fn then
+                local lib = fn()
+                if lib and type(lib) == "table" and lib.CreateWindow then
+                    print("✅ Fluent loaded from:", url)
+                    return lib
+                else
+                    table.insert(errors, "Invalid library from " .. url)
+                end
+            else
+                table.insert(errors, "Compile error: " .. tostring(compileErr))
+            end
+        else
+            table.insert(errors, "Fetch failed: " .. tostring(ok) .. " (" .. tostring(content) .. ")")
+        end
+        task.wait(0.2)
+    end
+    error("All Fluent load attempts failed:\n" .. table.concat(errors, "\n"))
+end
 
--- ===== CREATE WINDOW (MOBILE OPTIMIZED) =====
-local Camera = workspace.CurrentCamera
-local ViewportSize = Camera and Camera.ViewportSize or Vector2.new(400, 600)
-local w = math.clamp(ViewportSize.X - 20, 280, 400)
-local h = math.clamp(ViewportSize.Y - 80, 380, 480)
+Fluent = fetchFluent()
+print("Fluent Lite loaded successfully.")
 
-local Window = Fluent:CreateWindow({
-    Title = "W424HUB-GAG2",
-    SubTitle = "V.3.0 | Grow a Garden 2",
-    Size = UDim2.fromOffset(w, h),
-    MinimizeKey = Enum.KeyCode.RightShift,
-})
-print("Window created.")
+-- ===== PATCH: Override internal size calculation =====
+-- The original CreateWindow may try to read ViewportSize and fail.
+-- We'll store the original method and wrap it to force a fixed size.
+local originalCreateWindow = Fluent.CreateWindow
+local fixedSize = UDim2.fromOffset(360, 420) -- Safe default for mobile
+
+Fluent.CreateWindow = function(params)
+    -- Force the Size parameter to a fixed UDim2 if not provided or invalid
+    if not params.Size or type(params.Size) ~= "userdata" then
+        params.Size = fixedSize
+    end
+    -- Also ensure no other nil values are passed
+    return originalCreateWindow(params)
+end
+
+-- ===== CREATE WINDOW WITH FIXED SIZE =====
+local Window
+local function safeCreateWindow()
+    local params = {
+        Title = "W424HUB-GAG2",
+        SubTitle = "V.3.0 | Grow a Garden 2",
+        Size = fixedSize,
+        MinimizeKey = Enum.KeyCode.RightShift,
+    }
+    local ok, result = pcall(function()
+        return Fluent:CreateWindow(params)
+    end)
+    if ok and result then
+        print("Window created with fixed size.")
+        return result
+    else
+        warn("CreateWindow failed: " .. tostring(result))
+        -- Fallback: call without Size, rely on patch
+        params.Size = nil
+        local ok2, result2 = pcall(function()
+            return Fluent:CreateWindow(params)
+        end)
+        if ok2 and result2 then
+            print("Window created without explicit size (patch applied).")
+            return result2
+        else
+            error("Failed to create Fluent window: " .. tostring(result2))
+        end
+    end
+end
+
+Window = safeCreateWindow()
+print("Window instance obtained.")
 
 -- ============================================================
---  CORE FUNCTIONS (unchanged)
+--  DATABASE AND CORE FUNCTIONS (unchanged)
 -- ============================================================
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -380,7 +445,7 @@ local S = {
 }
 
 -- ============================================================
---  UI BUILDING (FLUENT LITE)
+--  UI BUILDING (FLUENT LITE – SAME AS BEFORE)
 -- ============================================================
 print("Building UI tabs...")
 
@@ -506,4 +571,4 @@ Fluent:Notify({
     Duration = 5
 })
 
-print("✅ W424HUB-GAG2 V.3.0 (Fluent Lite) fully loaded!")
+print("✅ W424HUB-GAG2 V.3.0 (Fluent Patched) fully loaded!")
